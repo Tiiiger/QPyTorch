@@ -4,8 +4,10 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <ATen/ATen.h>
+#include "quant_kernel.h"
 
 using namespace at;
+
 __device__ __forceinline__ float stochastic_round_helper(float a, float r) {
   return floor(a+r);
 }
@@ -45,6 +47,17 @@ __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
   }
 }
 
+__global__ void block_quantize_copy_kernel(float* __restrict__ a,
+                                           float* __restrict__ r,
+                                           float* o, int size, int wl,
+                                           short *exponent) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    float sigma = pow(2.0f, exponent[0]-(wl-1));
+    o[index] = stochastic_round(a[index], r[index], sigma);
+  }
+}
+
 Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   // use external random number right now
   auto o = at::zeros_like(a);
@@ -67,24 +80,26 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   return o;
 }
 
-Tensor block_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
-  // use external random number right now
+Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl) {
   auto o = at::zeros_like(a);
   auto dim = a.dim();
   int64_t size = 1;
   for (int i=0; i<dim; i++) size *=a.size(i);
-  float sigma = pow(2.0, -fl);
-  float t_min = -pow(2.0, wl-fl-1);
-  float t_max = -t_min-sigma;
+
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                           r.data<float>(),
-                                                           o.data<float>(),
-                                                           size,
-                                                           sigma,
-                                                           t_min,
-                                                           t_max);
+  extract_max_exponent_kernel<<<blockNums, blockSize>>>(a.data<float>(),
+                                                        temp.data<short>(),
+                                                        size);
+  reduce_max_exponent_kernel<<<1, 1024>>>(temp.data<short>(),
+                                          temp.data<short>(),
+                                          blockNums);
+  block_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
+                                                       r.data<float>(),
+                                                       o.data<float>(),
+                                                       size,
+                                                       wl,
+                                                       temp.data<short>());
   return o;
 }

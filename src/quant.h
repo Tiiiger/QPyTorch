@@ -1,9 +1,15 @@
+#include <ATen/ATen.h>
+
+using namespace at;
+
 /**
- * kernel that quantize real numbers into fixed point numbers.
+ * quantize a FloatTensor into fixed point number with word length [wl]
+ * and fractional bits [fl]
  **/
-__global__ void fixed_point_quantize_copy_cuda(float* __restrict__ a,
-                                               float* __restrict__ r,
-                                               float* o, int size, float sigma,
-                                               float t_min, float t_max);
+Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl);
 
-
+/**
+ * quantize a FloatTensor into fixed point number with word length [wl]
+ * and fractional bits [fl]
+ **/
+Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl);
