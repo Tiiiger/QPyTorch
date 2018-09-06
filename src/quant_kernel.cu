@@ -18,10 +18,10 @@ __device__ __forceinline__ float clamp_helper(float a, float min, float max) {
   else return a;
 }
 
-__device__ __forceinline__ float stochastic_round(float a, float r, float sigma) {
-  a /= sigma; 
+__device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
+  a = ldexp(a, -sigma); 
   a = stochastic_round_helper(a, r);
-  a *= sigma;
+  a = ldexp(a, sigma);
   return a;
 }
 
@@ -38,7 +38,7 @@ __global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict
 
 __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
                                                   float* __restrict__ r,
-                                                  float* o, int size, float sigma,
+                                                  float* o, int size, int sigma,
                                                   float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
@@ -53,7 +53,7 @@ __global__ void block_quantize_copy_kernel(float* __restrict__ a,
                                            short *exponent) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    float sigma = pow(2.0f, exponent[0]-(wl-1));
+    int sigma = (int) exponent[0]-(wl-1);
     o[index] = stochastic_round(a[index], r[index], sigma);
   }
 }
@@ -64,8 +64,8 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   auto dim = a.dim();
   int64_t size = 1;
   for (int i=0; i<dim; i++) size *=a.size(i);
-  float sigma = pow(2.0, -fl);
-  float t_min = -pow(2.0, wl-fl-1);
+  int sigma = -fl;
+  float t_min = -ldexp(1.0, wl-fl-1);
   float t_max = -t_min-sigma;
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
@@ -95,6 +95,7 @@ Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl) {
   reduce_max_exponent_kernel<<<1, 1024>>>(temp.data<short>(),
                                           temp.data<short>(),
                                           blockNums);
+
   block_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
                                                        r.data<float>(),
                                                        o.data<float>(),
