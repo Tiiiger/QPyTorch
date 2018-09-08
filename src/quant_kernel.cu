@@ -58,6 +58,25 @@ __global__ void block_quantize_copy_kernel(float* __restrict__ a,
   }
 }
 
+
+__device__ __forceinline__ short extract_exponent(float *a) {
+  unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
+  temp = (short) (temp << 1 >> 24);
+  return temp-(127-1);
+}
+
+__global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
+                                                float* __restrict__ r,
+                                                float* o, int size, int wl,
+                                                float *max_entry) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    short exponent = extract_exponent(max_entry);
+    int sigma = (int) exponent-(wl-1);
+    o[index] = stochastic_round(a[index], r[index], sigma);
+  }
+}
+
 Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   // use external random number right now
   auto o = at::zeros_like(a);
@@ -80,6 +99,24 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   return o;
 }
 
+Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl) {
+  auto o = at::zeros_like(a);
+  auto dim = a.dim();
+  int64_t size = 1;
+  for (int i=0; i<dim; i++) size *=a.size(i);
+
+  Tensor max_entry = at::max(at::abs(a));
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  block_quantize_copy_aten_kernel<<<blockNums, blockSize>>>(a.data<float>(),
+                                                       r.data<float>(),
+                                                       o.data<float>(),
+                                                       size,
+                                                       wl,
+                                                       max_entry.data<float>());
+  return o;
+}
 Tensor block_quantize_cuda(Tensor a, Tensor r, int wl) {
   auto o = at::zeros_like(a);
   auto dim = a.dim();

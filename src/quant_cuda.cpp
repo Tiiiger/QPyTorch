@@ -17,7 +17,7 @@ Tensor fixed_point_quantize(Tensor a, Tensor r, int wl, int fl) {
 Tensor block_quantize(Tensor a, Tensor r, int wl) {
   CHECK_INPUT(a);
   CHECK_INPUT(r);
-  return block_quantize_cuda(a, r, wl);
+  return block_quantize_aten_cuda(a, r, wl);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
