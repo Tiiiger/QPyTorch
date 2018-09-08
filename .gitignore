@@ -3,4 +3,11 @@ qtorch/dist
 qtorch/playground*
 qtorch/demo*
 qtorch/*ipynb*
-qtorch/__pycache__
+qtorch/*.egg-info
+qtorch/*.so
+*/__pycache__
+example/models/__pycache__
+example/runs
+example/data
+example/cifar10
+example/checkpoint
