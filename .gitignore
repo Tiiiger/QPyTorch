@@ -1,0 +1,4 @@
+src/build
+src/playground*
+src/demo*
+src/*.ipynb
