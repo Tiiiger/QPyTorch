@@ -4,7 +4,7 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 setup(
     name='quantizer',
     ext_modules=[
-        CUDAExtension('qtorch', [
+        CUDAExtension('quant_cuda', [
             'quant_cuda.cpp',
             'quant_kernel.cu',
             'extract_exponent.cu'

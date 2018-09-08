@@ -80,7 +80,7 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   return o;
 }
 
-Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl) {
+Tensor block_quantize_cuda(Tensor a, Tensor r, int wl) {
   auto o = at::zeros_like(a);
   auto dim = a.dim();
   int64_t size = 1;
@@ -89,11 +89,14 @@ Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
+  short *temp; 
+  cudaMalloc(&temp, blockNums*sizeof(short));
+
   extract_max_exponent_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                        temp.data<short>(),
+                                                        temp,
                                                         size);
-  reduce_max_exponent_kernel<<<1, 1024>>>(temp.data<short>(),
-                                          temp.data<short>(),
+  reduce_max_exponent_kernel<<<1, 1024>>>(temp,
+                                          temp,
                                           blockNums);
 
   block_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
@@ -101,6 +104,7 @@ Tensor block_quantize_cuda(Tensor a, Tensor r, Tensor temp, int wl) {
                                                        o.data<float>(),
                                                        size,
                                                        wl,
-                                                       temp.data<short>());
+                                                       temp);
+  cudaFree(temp);
   return o;
 }
