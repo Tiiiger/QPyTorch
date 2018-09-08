@@ -1,12 +1,11 @@
-qtorch/build
 qtorch/dist
 qtorch/playground*
 qtorch/demo*
 qtorch/*ipynb*
-qtorch/*.egg-info
-qtorch/*.so
-*/__pycache__
-example/models/__pycache__
+**/*/__pycache__
+**/*/build
+**/*/*.egg-info
+**/*/*.so
 example/runs
 example/data
 example/cifar10

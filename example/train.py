@@ -135,7 +135,7 @@ def make_quantizer(number_type, wl, fl, quant_type):
     if number_type=="fixed":
         return lambda x : fixed_point_quantize(x, wl, fl, -1, -1, quant_type)
     elif number_type=="block":
-        return lambda x : models.quantize_block(x, wl, -1, quant_type)
+        return lambda x : block_quantize(x, wl, -1, quant_type)
 
 weight_quantizer = make_quantizer(args.weight_type, args.wl_weight,
                                   args.fl_weight, args.quant_type)
@@ -236,18 +236,17 @@ if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
     model_cfg.kwargs.update(
-        {"wl_activate":args.wl_activate, "fl_activate":args.fl_activate,
-         "wl_error":args.wl_error, "fl_error":args.fl_error,
-         "layer_type":args.layer_type, "quant_type":args.quant_type, "quantize_backward": args.quant_backward,
-         "writer":writer})
+        {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
+         "backward_wl":args.wl_error, "backward_fl":args.fl_error,
+         "forward_layer_type":args.layer_type,
+         "forward_round_type":args.quant_type})
 
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 if args.swa:
     print('SWA training')
     if 'LP' in args.model:
-        model_cfg.kwargs.update({"wl_activate":-1, "fl_activate":-1, "wl_error":-1,
-                                 "fl_error":-1 , "quantize_backward": False, "writer":writer})
+        model_cfg.kwargs = {}
     swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
     swa_model.cuda()
     swa_n = 0
