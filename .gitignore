@@ -1,4 +1,6 @@
-src/build
-src/playground*
-src/demo*
-src/*.ipynb
+qtorch/build
+qtorch/dist
+qtorch/playground*
+qtorch/demo*
+qtorch/*ipynb*
+qtorch/__pycache__
