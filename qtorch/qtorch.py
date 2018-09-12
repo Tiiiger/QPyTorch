@@ -95,5 +95,12 @@ class BlockRounding(torch.autograd.Function):
                 grad_input = grad_output
         return grad_input, None, None, None, None
 
-fixed_point_quantize = FixedPointRounding.apply
-block_quantize = BlockRounding.apply
+def fixed_point_quantize(x, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
+                         forward_mode="stochastic", backward_mode="stochastic"):
+    return FixedPointRounding.apply(x, forward_wl, forward_fl, backward_wl, backward_fl,
+                forward_mode, backward_mode)
+
+def block_quantize(x, forward_wl=-1, backward_wl=-1, forward_mode="stochastic",
+                   backward_mode="stochastic"):
+    return BlockRounding.apply(x, forward_wl, backward_wl, forward_mode,
+                backward_mode)

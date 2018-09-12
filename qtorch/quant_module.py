@@ -27,5 +27,5 @@ class FixedQuantizer(nn.Module):
         self.backward_mode=backward_mode
 
     def forward(self, x):
-        return fixe_point_quantize(x, self.forward_wl, self.forward_fl, self.backward_wl, self.backward_fl,
+        return fixed_point_quantize(x, self.forward_wl, self.forward_fl, self.backward_wl, self.backward_fl,
                               self.forward_mode, self.backward_mode)

@@ -26,7 +26,7 @@ def make_layers(cfg, quant, batch_norm=False):
                 layers += [conv2d, nn.BatchNorm2d(filters), nn.ReLU(inplace=True)]
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
-            if use_quant: layers += [quant("conv{}".format(n))]
+            if use_quant: layers += [quant()]
             n += 1
             in_channels = filters
     return nn.Sequential(*layers)
@@ -42,7 +42,7 @@ class VGG(nn.Module):
     def __init__(self, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
                  forward_layer_type="fixed", backward_layer_type="",
                  forward_round_type="stochastic", backward_round_type="",
-                 num_classes=10, depth=16, batch_norm=False, writer=None):
+                 num_classes=10, depth=16, batch_norm=False):
 
         assert forward_layer_type in ["block", "fixed"]
         assert forward_round_type in ["nearest", "stochastic"]
@@ -52,9 +52,9 @@ class VGG(nn.Module):
         assert backward_round_type in ["nearest", "stochastic"]
 
         if forward_layer_type == "block":
-            quant = lambda name : BlockQuantizer(forward_wl, backward_wl, forward_round_type, backward_round_type)
+            quant = lambda : BlockQuantizer(forward_wl, backward_wl, forward_round_type, backward_round_type)
         elif forward_layer_type == "fixed":
-            quant = lambda name : FixedQuantizer(forward_wl, forward_fl, backward_wl, backward_fl, forward_round_type, backward_round_type)
+            quant = lambda : FixedQuantizer(forward_wl, forward_fl, backward_wl, backward_fl, forward_round_type, backward_round_type)
 
         super(VGG, self).__init__()
         self.features = make_layers(cfg[depth], quant, batch_norm)
@@ -62,11 +62,11 @@ class VGG(nn.Module):
             nn.Dropout(),
             nn.Linear(512, 512),
             nn.ReLU(True),
-            quant("fc1"),
+            quant(),
             nn.Dropout(),
             nn.Linear(512, 512),
             nn.ReLU(True),
-            quant("fc2"),
+            quant(),
             nn.Linear(512, num_classes),
         )
         for m in self.modules():
