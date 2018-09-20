@@ -15,6 +15,7 @@ from qtorch import block_quantize, fixed_point_quantize
 import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
+from auto_low import resnet_lower, lower
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
 parser.add_argument('--dir', type=str, default=None, required=True,
@@ -39,7 +40,7 @@ parser.add_argument('--save_freq', type=int, default=25, metavar='N',
                     help='save frequency (default: 25)')
 parser.add_argument('--eval_freq', type=int, default=5, metavar='N',
                     help='evaluation frequency (default: 5)')
-parser.add_argument('--lr_init', type=float, default=0.1, metavar='LR',
+parser.add_argument('--lr_init', type=float, default=0.01, metavar='LR',
                     help='initial learning rate (default: 0.01)')
 parser.add_argument('--lr-type', type=str, default="wilson", metavar='S',
                     help='learning decay schedule type ("wilson" or "gupta" or "const")')
@@ -93,6 +94,8 @@ parser.add_argument('--no-quant-bias', action='store_true',
                     help='not quantize bias (default: off)')
 parser.add_argument('--no-quant-bn', action='store_true',
                     help='not quantize batch norm (default: off)')
+parser.add_argument('--auto_low', action='store_true', default=False,
+                    help='auto_low')
 
 args = parser.parse_args()
 
@@ -243,6 +246,12 @@ elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
 
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
+if args.auto_low:
+    if args.layer_type == "block":
+        quant = lambda : BlockQuantizer(args.wl_activate, args.wl_error, args.quant_type, args.quant_type)
+    elif args.layer_type == "fixed":
+        quant = lambda : FixedQuantizer(args.wl_activate, args.wl_activate, args.wl_error, args.fl_error, args.quant_type, args.quant_type)
+    lower(model, quant, ["conv","activation"])
 if args.swa:
     print('SWA training')
     if 'LP' in args.model:

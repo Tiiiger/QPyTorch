@@ -61,11 +61,11 @@ def _resnet_get_apply_lower_func(quant):
         """
         old_forward = module.forward
         if type(module) in CONV_LAYERS:
-            module.forward = lambda *input : quant()(old_forward(*input))
+            module.forward = lambda *input : quant(old_forward(*input))
         # elif type(module) in LINEAR_LAYERS:
-        #     module.forward = lambda *input : quant()(old_forward(*input))
+        #     module.forward = lambda *input : quant(old_forward(*input))
         elif type(module) in ACTIVATION_LAYERS:
-            module.forward = lambda *input : quant()(old_forward(*input))
+            module.forward = lambda *input : quant(old_forward(*input))
         else:
             return
     return _insert_LP_layer
@@ -85,7 +85,7 @@ def _get_apply_lower_func(quant, layer_types=[]):
 
         old_forward = module.forward
         if type(module) in lp_layer_types:
-            module.forward = lambda *input : quant()(old_forward(*input))
+            module.forward = lambda *input : quant(old_forward(*input))
         else:
             return
     return _insert_LP_layer
