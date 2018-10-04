@@ -12,7 +12,8 @@ __device__ __forceinline__ float stochastic_round_helper(float a, float r) {
   return floor(a+r);
 }
 
-__device__ __forceinline__ float clamp_helper(float a, float min, float max) {
+template <typename T>
+__device__ __forceinline__ T clamp_helper(T a, T min, T max) {
   if (a > max) return max;
   else if (a < min) return min;
   else return a;
@@ -25,10 +26,8 @@ __device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
   return a;
 }
 
-
-
 __global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict__ r, int size,
-                                     float sigma, float t_min, float t_max) {
+                                                    float sigma, float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
     a[index] = stochastic_round(a[index], r[index], sigma);
@@ -37,9 +36,9 @@ __global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict
 }
 
 __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
-                                                  float* __restrict__ r,
-                                                  float* o, int size, int sigma,
-                                                  float t_min, float t_max) {
+                                                 float* __restrict__ r,
+                                                 float* o, int size, int sigma,
+                                                 float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
     o[index] = stochastic_round(a[index], r[index], sigma);
@@ -57,7 +56,6 @@ __global__ void block_quantize_copy_kernel(float* __restrict__ a,
     o[index] = stochastic_round(a[index], r[index], sigma);
   }
 }
-
 
 __device__ __forceinline__ short extract_exponent(float *a) {
   unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
@@ -77,12 +75,49 @@ __global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
   }
 }
 
-Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
-  // use external random number right now
-  auto o = at::zeros_like(a);
+__global__ void float_kernel(float* __restrict__ a,
+                                  float* __restrict__ r,
+                                  float* o, int size,
+                                  int exp_bits,
+                                  int man_bits ) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    int exponent = (int) extract_exponent(a[index]);
+    int max_exponent = (1 << (exp_bits - 1)) -1;
+    int min_exponent = 1 << (exp_bits - 1);
+    exponent = clamp_helper(exponent, max_exponent, min_exponent);
+    int sigma = exponent - (man_bits-1);
+    o[index] = stochastic_round(a[index], r[index], sigma);
+  }
+}
+
+int64_t calc_size(Tensor a) {
   auto dim = a.dim();
   int64_t size = 1;
   for (int i=0; i<dim; i++) size *=a.size(i);
+  return size;
+}
+
+Tensor float_quantize_cuda(Tensor a, Tensor r, int man_bits, int exp_bits) {
+  // use external random number right now
+  auto o = at::zeros_like(a);
+  int64_t size = calc_size(a);
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  float_kernel<<<blockNums, blockSize>>>(a.data<float>(),
+                                         r.data<float>(),
+                                         o.data<float>(),
+                                         size,
+                                         man_bits,
+                                         exp_bits);
+  return o;
+}
+
+Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
+  // use external random number right now
+  auto o = at::zeros_like(a);
+  int64_t size = calc_size(a);
   int sigma = -fl;
   float t_min = -ldexp(1.0, wl-fl-1);
   float t_max = -t_min-sigma;
@@ -90,33 +125,33 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   int blockNums = (size + blockSize - 1) / blockSize;
 
   fixed_point_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                           r.data<float>(),
-                                                           o.data<float>(),
-                                                           size,
-                                                           sigma,
-                                                           t_min,
-                                                           t_max);
+                                                             r.data<float>(),
+                                                             o.data<float>(),
+                                                             size,
+                                                             sigma,
+                                                             t_min,
+                                                             t_max);
   return o;
 }
 
 Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl) {
   auto o = at::zeros_like(a);
-  auto dim = a.dim();
-  int64_t size = 1;
-  for (int i=0; i<dim; i++) size *=a.size(i);
+  int64_t size = calc_size(a);
 
   Tensor max_entry = at::max(at::abs(a));
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
   block_quantize_copy_aten_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                       r.data<float>(),
-                                                       o.data<float>(),
-                                                       size,
-                                                       wl,
-                                                       max_entry.data<float>());
+                                                            r.data<float>(),
+                                                            o.data<float>(),
+                                                            size,
+                                                            wl,
+                                                            max_entry.data<float>());
   return o;
+
 }
+
 Tensor block_quantize_cuda(Tensor a, Tensor r, int wl) {
   auto o = at::zeros_like(a);
   auto dim = a.dim();
