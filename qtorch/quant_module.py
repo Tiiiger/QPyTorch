@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from .quant_function import *
 
-#TODO: support different number for forward and backward
-
 class BlockQuantizer(nn.Module):
     def __init__(self, forward_wl, backward_wl, forward_mode, backward_mode):
         super(BlockQuantizer, self).__init__()
@@ -27,5 +25,6 @@ class FixedQuantizer(nn.Module):
         self.backward_mode=backward_mode
 
     def forward(self, x):
-        return fixed_point_quantize(x, self.forward_wl, self.forward_fl, self.backward_wl, self.backward_fl,
+        return fixed_point_quantize(x, self.forward_wl, self.forward_fl,
+                              self.backward_wl, self.backward_fl,
                               self.forward_mode, self.backward_mode)

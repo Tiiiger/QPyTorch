@@ -11,7 +11,7 @@ import torchvision.datasets as datasets
 import utils
 import tabulate
 import models
-from qtorch import block_quantize, fixed_point_quantize
+from qtorch import *
 import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -48,14 +48,6 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum (default: 0.9)')
 parser.add_argument('--wd', type=float, default=1e-4,
                     help='weight decay (default: 1e-4)')
-parser.add_argument('--swa', action='store_true',
-                    help='swa usage flag (default: off)')
-parser.add_argument('--swa_start', type=float, default=161, metavar='N',
-                    help='SWA start epoch number (default: 161)')
-parser.add_argument('--swa_lr', type=float, default=0.05, metavar='LR',
-                    help='SWA LR (default: 0.05)')
-parser.add_argument('--swa_c_epochs', type=int, default=1, metavar='N',
-                    help='SWA model collection frequency/cycle length in epochs (default: 1)')
 parser.add_argument('--seed', type=int, default=200, metavar='N',
                     help='random seed (default: 1)')
 parser.add_argument('--log-name', type=str, default='', metavar='S',
@@ -108,11 +100,9 @@ np.random.seed(args.seed)
 
 # Tensorboard Writer
 if args.log_name != "":
-    log_name = "{}-{}-seed{}-{}".format( args.log_name, "swa" if args.swa else "sgd", args.seed, int(time.time()))
-else:
-    log_name = "{}-seed{}-{}".format("swa" if args.swa else "sgd", args.seed, int(time.time()))
+    log_name = os.path.join(args.log_name, "seed{}-{}".format(args.seed, time.time()))
 print("Logging at {}".format(log_name))
-writer = SummaryWriter(log_dir=os.path.join(".", "runs", log_name)) 
+writer = SummaryWriter(log_dir=os.path.join(".", "runs", log_name))
 
 
 # Select quantizer
@@ -136,9 +126,9 @@ print("{} rounding, W:{}, A:{}, G:{}, E:{}".format(args.quant_type, w_summary,
 
 def make_quantizer(number_type, wl, fl, quant_type):
     if number_type=="fixed":
-        return lambda x : fixed_point_quantize(x, wl, fl, -1, -1, quant_type)
+        return lambda x : fixed_point_quantize(x, wl, fl, -1, -1, forward_mode=quant_type)
     elif number_type=="block":
-        return lambda x : block_quantize(x, wl, -1, quant_type)
+        return lambda x : block_quantize(x, wl, -1, forward_mode=quant_type)
 
 weight_quantizer = make_quantizer(args.weight_type, args.wl_weight,
                                   args.fl_weight, args.quant_type)
@@ -232,17 +222,18 @@ loaders = {
     )
 }
 
-# Build model 
+# Build model
 print('Model: {}'.format(args.model))
 model_cfg = getattr(models, args.model)
 if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
-    model_cfg.kwargs.update(
-        {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
-         "backward_wl":args.wl_error, "backward_fl":args.fl_error,
-         "forward_layer_type":args.layer_type,
-         "forward_round_type":args.quant_type})
+    raise NotImplemented
+    # model_cfg.kwargs.update(
+    #     {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
+    #      "backward_wl":args.wl_error, "backward_fl":args.fl_error,
+    #      "forward_layer_type":args.layer_type,
+    #      "forward_round_type":args.quant_type})
 
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
@@ -251,22 +242,15 @@ if args.auto_low:
         quant = lambda : BlockQuantizer(args.wl_activate, args.wl_error, args.quant_type, args.quant_type)
     elif args.layer_type == "fixed":
         quant = lambda : FixedQuantizer(args.wl_activate, args.wl_activate, args.wl_error, args.fl_error, args.quant_type, args.quant_type)
-    lower(model, quant, ["conv","activation"])
-if args.swa:
-    print('SWA training')
-    if 'LP' in args.model:
-        model_cfg.kwargs = {}
-    swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
-    swa_model.cuda()
-    swa_n = 0
-else:
-    print('SGD training')
+    print("Applying auto low")
+    lower(model, quant, ["conv"])
+print('SGD training')
 
 
 def schedule(epoch, lr_schedule):
     if lr_schedule == "wilson":
-        t = (epoch) / (args.swa_start if args.swa else args.epochs)
-        lr_ratio = args.swa_lr / args.lr_init if args.swa else 0.01
+        t = (epoch) / args.epochs
+        lr_ratio = 0.01
         if t <= 0.5:
             factor = 1.0
         elif t <= 0.9:
@@ -298,19 +282,9 @@ if args.resume is not None:
     start_epoch = checkpoint['epoch']-1
     model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    if args.swa:
-        swa_state_dict = checkpoint['swa_state_dict']
-        if swa_state_dict is not None:
-            swa_model.load_state_dict(swa_state_dict)
-        swa_n_ckpt = checkpoint['swa_n']
-        if swa_n_ckpt is not None:
-            swa_n = swa_n_ckpt
 
 # Prepare logging
 columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_loss', 'te_acc', 'time']
-if args.swa:
-    columns = columns[:-1] + ['swa_te_loss', 'swa_te_acc'] + columns[-1:]
-    swa_res = {'loss': None, 'accuracy': None}
 
 def log_result(writer, name, res, step):
     writer.add_scalar("{}/loss".format(name),     res['loss'],            step)
@@ -350,45 +324,8 @@ for epoch in range(start_epoch, args.epochs):
         test_res = {'loss': None, 'accuracy': None}
         val_res = {'loss': None, 'accuracy': None}
 
-    if args.swa and (epoch + 1) >= args.swa_start and (epoch + 1 - args.swa_start) % args.swa_c_epochs == 0:
-        decay = 1.0 / (swa_n+1)
-        utils.moving_average(swa_model, model, decay)
-        swa_n += 1
-        if args.log_distribution:
-            for name, param in swa_model.named_parameters():
-                writer.add_histogram( "param-swa/%s"%name,
-                    param.clone().cpu().data.numpy(), epoch)
-        if epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-            utils.bn_update(loaders['train'], swa_model)
-            swa_te_res = utils.eval(loaders['test'], swa_model, criterion)
-            log_result(writer, "test_avged", swa_te_res, epoch+1)
-            if args.val_ratio > 0 :
-                swa_val_res = utils.eval(loaders['val'], swa_model, criterion)
-                log_result(writer, "val_avged", swa_val_res, epoch+1)
-        else:
-            swa_te_res = {'loss': None, 'accuracy': None}
-            swa_val_res = {'loss': None, 'accuracy': None}
-    else:
-       swa_te_res = {'loss': None, 'accuracy': None}
-       swa_val_res = {'loss': None, 'accuracy': None}
-
-    # Save Checkpoint
-
-    if (epoch+1) % args.save_freq == 0 or (epoch+1) == args.swa_start:
-        utils.save_checkpoint(
-            dir_name,
-            epoch + 1,
-            state_dict=model.state_dict(),
-            swa_state_dict=swa_model.state_dict() if args.swa else None,
-            swa_n=swa_n if args.swa else None,
-            optimizer=optimizer.state_dict()
-        )
-
     time_ep = time.time() - time_ep
     values = [epoch + 1, lr, train_res['loss'], train_res['accuracy'], test_res['loss'], test_res['accuracy'], time_ep]
-
-    if args.swa :
-        values = values[:-1] + [swa_te_res['loss'], swa_te_res['accuracy']] + values[-1:]
 
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='8.4f')
     if epoch % 40 == 0:
@@ -404,8 +341,6 @@ if args.epochs % args.save_freq != 0:
         dir_name,
         args.epochs,
         state_dict=model.state_dict(),
-        swa_state_dict=swa_model.state_dict() if args.swa else None,
-        swa_n=swa_n if args.swa else None,
         optimizer=optimizer.state_dict()
     )
 
