@@ -36,51 +36,8 @@ def train_epoch(loader, model, criterion, optimizer, weight_quantizer, grad_quan
         optimizer.zero_grad()
         loss.backward()
 
-        # Write parameters
-        # if log_error and i==0:
-        #     for name, param in model.named_parameters():
-        #         writer.add_histogram(
-        #             "param-before/%s"%name, param.clone().cpu().data.numpy(), epoch)
-        #         writer.add_histogram(
-        #             "gradient-before/%s"%name, param.grad.clone().cpu().data.numpy(), epoch)
-
-        # gradient quantization
-        if grad_quantizer != None:
-            for name, p in model.named_parameters():
-                if 'bn' in name.split(".")[-2] and not quant_bn:
-                    continue
-                if 'bias' in name.split(".")[-1] and not quant_bias:
-                    continue
-                p.grad.data = grad_quantizer(p.grad.data).data
-
         optimizer.step()
 
-        # Weight quantization
-        if weight_quantizer != None:
-            for name, p in model.named_parameters():
-                if 'bn' in name.split(".")[-2] and not quant_bn:
-                    continue
-                if 'bias' in name.split(".")[-1] and not quant_bias:
-                    continue
-                 # log quantization error at the first batch every epoch
-                if log_error and i == 0:
-                    data_quant = weight_quantizer(p.data).data
-                    error = torch.nn.functional.mse_loss(p.data, data_quant)
-                    p.data = data_quant
-                    writer.add_scalar(
-                        "param-quantize_error/%s"%name, error.cpu().data.numpy(), epoch)
-                else:
-                    p.data = weight_quantizer(p.data).data
-
-        # Write parameters after quantization
-        # if log_error and i == 0:
-        #     for name, param in model.named_parameters():
-        #         writer.add_histogram(
-        #             "param-after/%s"%name, param.clone().cpu().data.numpy(), epoch)
-        #         writer.add_histogram(
-        #             "gradient-after/%s"%name, param.grad.clone().cpu().data.numpy(), epoch)
-
-        # loss_sum += loss.data[0] * input.size(0)
         loss_sum += loss.cpu().item() * input.size(0)
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target_var.data.view_as(pred)).sum()

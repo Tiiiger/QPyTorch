@@ -16,6 +16,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
 from auto_low import resnet_lower, lower
+from optim import SGDLP
 
 parser = argparse.ArgumentParser(description='SGD/SWA training')
 parser.add_argument('--dir', type=str, default=None, required=True,
@@ -134,6 +135,9 @@ weight_quantizer = make_quantizer(args.weight_type, args.wl_weight,
                                   args.fl_weight, args.quant_type)
 grad_quantizer = make_quantizer(args.grad_type, args.wl_grad,
                                   args.fl_grad, args.quant_type)
+# use gradient quantizer for now
+momentum_quantizer = make_quantizer(args.grad_type, args.wl_grad,
+                                    args.fl_grad, args.quant_type)
 
 dir_name = args.dir + "-seed-{}".format(args.seed)
 print('Preparing checkpoint directory {}'.format(dir_name))
@@ -243,7 +247,7 @@ if args.auto_low:
     elif args.layer_type == "fixed":
         quant = lambda : FixedQuantizer(args.wl_activate, args.wl_activate, args.wl_error, args.fl_error, args.quant_type, args.quant_type)
     print("Applying auto low")
-    lower(model, quant, ["conv"])
+    lower(model, quant, ["conv", "activation"])
 print('SGD training')
 
 
@@ -268,11 +272,14 @@ def schedule(epoch, lr_schedule):
     return args.lr_init * factor
 
 criterion = F.cross_entropy
-optimizer = torch.optim.SGD(
+optimizer = SGDLP(
     model.parameters(),
     lr=args.lr_init,
     momentum=args.momentum,
-    weight_decay=args.wd
+    weight_decay=args.wd,
+    weight_quant=weight_quantizer,
+    grad_quant=grad_quantizer,
+    momentum_quant=momentum_quantizer
 )
 
 start_epoch = 0
