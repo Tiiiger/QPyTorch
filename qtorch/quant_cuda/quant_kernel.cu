@@ -26,15 +26,17 @@ __device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
   return a;
 }
 
-__global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict__ r, int size,
-                                                    float sigma, float t_min, float t_max) {
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < size) {
-    a[index] = stochastic_round(a[index], r[index], sigma);
-    a[index] = clamp_helper(a[index], t_min, t_max);
-  }
-}
+// __global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict__ r, int size,
+//                                                     int sigma, float t_min, float t_max) {
+//   int index = blockIdx.x * blockDim.x + threadIdx.x;
+//   if (index < size) {
+//     a[index] = stochastic_round(a[index], r[index], sigma);
+//     a[index] = clamp_helper(a[index], t_min, t_max);
+//   }
+// }
 
+// quantize an array of real numbers into fixed point with word length [wl] and [fl] fractional bits
+// 2**-[sigma] is the smallest unit of the fixed point representation
 __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
                                                  float* __restrict__ r,
                                                  float* o, int size, int sigma,
@@ -46,23 +48,26 @@ __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
   }
 }
 
-__global__ void block_quantize_copy_kernel(float* __restrict__ a,
-                                           float* __restrict__ r,
-                                           float* o, int size, int wl,
-                                           short *exponent) {
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < size) {
-    int sigma = (int) exponent[0]-(wl-1);
-    o[index] = stochastic_round(a[index], r[index], sigma);
-  }
-}
+// __global__ void block_quantize_copy_kernel(float* __restrict__ a,
+//                                            float* __restrict__ r,
+//                                            float* o, int size, int wl,
+//                                            short *exponent) {
+//   int index = blockIdx.x * blockDim.x + threadIdx.x;
+//   if (index < size) {
+//     int sigma = (int) exponent[0]-(wl-1);
+//     o[index] = stochastic_round(a[index], r[index], sigma);
+//   }
+// }
 
 __device__ __forceinline__ short extract_exponent(float *a) {
   unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
-  temp = (short) (temp << 1 >> 24);
-  return temp-(127-1);
+  temp = (short) (temp << 1 >> 24); // single preciision, 1 sign bit, 23 mantissa bits
+  return temp-127+1; // exponent offset and virtual bit
 }
 
+// quantize an array of real number into block floating point
+// each number has word length [wl] and [max_entry] is the maximum number
+// in array
 __global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
                                                 float* __restrict__ r,
                                                 float* o, int size, int wl,
