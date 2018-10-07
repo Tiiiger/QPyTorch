@@ -14,6 +14,7 @@ class Quantizer(nn.Module):
         class Rounding(torch.autograd.Function):
             @staticmethod
             def forward(self, x):
+                if forward_wl == -1: return x
                 if forward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
                 elif forward_rounding=="stochastic":
