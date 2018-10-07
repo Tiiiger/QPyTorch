@@ -8,13 +8,13 @@ import torch.nn.functional as F
 import utils
 import tabulate
 import models
-from qtorch import *
 from data import get_data
 import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
-from auto_low import resnet_lower, lower
-from optim import SGDLP
+from qtorch.quant import *
+from qtorch.auto_low import resnet_lower, lower
+from qtorch.optim import SGDLP
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
 

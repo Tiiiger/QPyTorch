@@ -1,1 +1,1 @@
-python train.py --dataset CIFAR10 --data_path ./data --model VGG16 --epochs=200 --lr_init=0.05 --wd=5e-4 --name example --wl-weight -1 --wl-grad -1 --wl-momentum -1 --wl-activate -1 --wl-error -1 --seed 100 --batch_size 128 --auto_low
+python train.py --dataset CIFAR10 --data_path ./data --model VGG16 --epochs=200 --lr_init=0.05 --wd=5e-4 --name example --wl-weight 8 --wl-grad 8 --wl-momentum 8 --wl-activate 8 --wl-error 8 --seed 100 --batch_size 128 --auto_low
