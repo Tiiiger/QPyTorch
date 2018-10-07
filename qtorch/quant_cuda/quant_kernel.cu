@@ -26,15 +26,6 @@ __device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
   return a;
 }
 
-// __global__ void fixed_point_quantize_inplace_kernel(float *a,  float* __restrict__ r, int size,
-//                                                     int sigma, float t_min, float t_max) {
-//   int index = blockIdx.x * blockDim.x + threadIdx.x;
-//   if (index < size) {
-//     a[index] = stochastic_round(a[index], r[index], sigma);
-//     a[index] = clamp_helper(a[index], t_min, t_max);
-//   }
-// }
-
 // quantize an array of real numbers into fixed point with word length [wl] and [fl] fractional bits
 // 2**-[sigma] is the smallest unit of the fixed point representation
 __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
@@ -48,20 +39,9 @@ __global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
   }
 }
 
-// __global__ void block_quantize_copy_kernel(float* __restrict__ a,
-//                                            float* __restrict__ r,
-//                                            float* o, int size, int wl,
-//                                            short *exponent) {
-//   int index = blockIdx.x * blockDim.x + threadIdx.x;
-//   if (index < size) {
-//     int sigma = (int) exponent[0]-(wl-1);
-//     o[index] = stochastic_round(a[index], r[index], sigma);
-//   }
-// }
-
-__device__ __forceinline__ short extract_exponent(float *a) {
+__device__ __forceinline__ unsigned int extract_exponent(float *a) {
   unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
-  temp = (short) (temp << 1 >> 24); // single preciision, 1 sign bit, 23 mantissa bits
+  temp = (temp << 1 >> 24); // single preciision, 1 sign bit, 23 mantissa bits
   return temp-127+1; // exponent offset and virtual bit
 }
 
@@ -74,25 +54,40 @@ __global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
                                                 float *max_entry) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    short exponent = extract_exponent(max_entry);
-    int sigma = (int) exponent-(wl-1);
+    int exponent = ((int) extract_exponent(max_entry);
+    int sigma = exponent-(wl-1);
     o[index] = stochastic_round(a[index], r[index], sigma);
   }
 }
 
+// quantize a float into a floating point with [exp_bits] exponent and
+// [man_bits] mantissa
+// TODO: Need Testing
 __global__ void float_kernel(float* __restrict__ a,
-                                  float* __restrict__ r,
-                                  float* o, int size,
-                                  int exp_bits,
-                                  int man_bits ) {
+                             int* __restrict__ r,
+                             float* o, int size,
+                             int exp_bits,
+                             int man_bits) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    int exponent = (int) extract_exponent(a[index]);
-    int max_exponent = (1 << (exp_bits - 1)) -1;
-    int min_exponent = 1 << (exp_bits - 1);
-    exponent = clamp_helper(exponent, max_exponent, min_exponent);
-    int sigma = exponent - (man_bits-1);
-    o[index] = stochastic_round(a[index], r[index], sigma);
+    man_bits = man_bits-1; // 1 virtual bit
+    unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
+
+    unsigned int old_number = *reinterpret_cast<unsigned int*>(a[index]);
+    unsigned int old_exponent = old_number << 1 >> 1 >> 23;
+    unsigned int rand_prob = (unsigned int) r[index];
+    unsigned int add_r = old_number+rand_prob;
+    int offset = 32-9-man_bits; // float length minus sign bit and exponent bit add 1 virtual bit
+    unsigned int mask = (unsigned int) -1 << offset;
+    unsigned int quantize = add_r & mask;
+    unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
+    if (quantized_exponent > max_exponent) {
+      unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
+      unsigned int max_num = (max_exponent << 23) | max_man;
+      unsigned int old_sign = old_number >> 31 << 31;
+      quantize = old_sign | max_num;
+    }
+    o[index] = quantize;
   }
 }
 
