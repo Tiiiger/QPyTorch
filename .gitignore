@@ -10,3 +10,4 @@ example/runs
 example/data
 example/cifar10
 example/checkpoint
+playground/build

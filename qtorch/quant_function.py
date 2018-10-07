@@ -14,21 +14,21 @@ class FixedPointRounding(torch.autograd.Function):
 
     @staticmethod
     def forward(self, x, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
-                forward_mode="stochastic", backward_mode="stochastic"):
+                forward_rounding="stochastic", backward_rounding="stochastic"):
         self.backward_wl = backward_wl
         self.backward_fl = backward_fl
-        self.backward_mode = backward_mode
+        self.backward_rounding = backward_rounding
 
         assert_wl_fl(forward_wl, forward_fl, "forward")
         assert_wl_fl(backward_wl, backward_fl, "backward")
-        assert forward_mode in ["stochastic", "nearest"]
-        assert backward_mode in ["stochastic", "nearest"]
+        assert forward_rounding in ["stochastic", "nearest"]
+        assert backward_rounding in ["stochastic", "nearest"]
 
         if forward_wl == -1: return x
 
-        if forward_mode=="nearest":
+        if forward_rounding=="nearest":
             raise NotImplementedError("not implement nearest rounding.")
-        elif forward_mode=="stochastic":
+        elif forward_rounding=="stochastic":
             size = 1
             for n in x.size(): size *= n
             start = np.random.randint(0, R.size(0)-size-1)
@@ -42,9 +42,9 @@ class FixedPointRounding(torch.autograd.Function):
 
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
-                if self.backward_mode=="nearest":
+                if self.backward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
-                elif self.backward_mode=="stochastic":
+                elif self.backward_rounding=="stochastic":
                     size = 1
                     for n in grad_output.size(): size *= n
                     start = np.random.randint(0, R.size(0)-size-1)
@@ -60,17 +60,17 @@ class FixedPointRounding(torch.autograd.Function):
 
 class BlockRounding(torch.autograd.Function):
     @staticmethod
-    def forward(self, x, forward_wl=-1, backward_wl=-1, forward_mode="stochastic", backward_mode="stochastic"):
+    def forward(self, x, forward_wl=-1, backward_wl=-1, forward_rounding="stochastic", backward_rounding="stochastic"):
         self.backward_wl = backward_wl
-        self.backward_mode = backward_mode
+        self.backward_rounding = backward_rounding
 
-        assert forward_mode in ["stochastic", "nearest"]
-        assert backward_mode in ["stochastic", "nearest"]
+        assert forward_rounding in ["stochastic", "nearest"]
+        assert backward_rounding in ["stochastic", "nearest"]
 
         if forward_wl == -1: return x
-        if forward_mode=="nearest":
+        if forward_rounding=="nearest":
             raise NotImplementedError("not implement nearest rounding.")
-        elif forward_mode=="stochastic":
+        elif forward_rounding=="stochastic":
             size = 1
             for n in x.size(): size *= n
             start = np.random.randint(0, R.size(0)-size-1)
@@ -83,9 +83,9 @@ class BlockRounding(torch.autograd.Function):
     def backward(self, grad_output):
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
-                if self.backward_mode=="nearest":
+                if self.backward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
-                elif self.backward_mode=="stochastic":
+                elif self.backward_rounding=="stochastic":
                     size = 1
                     for n in grad_output.size(): size *= n
                     start = np.random.randint(0, R.size(0)-size-1)
@@ -96,11 +96,11 @@ class BlockRounding(torch.autograd.Function):
         return grad_input, None, None, None, None
 
 def fixed_point_quantize(x, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
-                         forward_mode="stochastic", backward_mode="stochastic"):
+                         forward_rounding="stochastic", backward_rounding="stochastic"):
     return FixedPointRounding.apply(x, forward_wl, forward_fl, backward_wl, backward_fl,
-                forward_mode, backward_mode)
+                forward_rounding, backward_rounding)
 
-def block_quantize(x, forward_wl=-1, backward_wl=-1, forward_mode="stochastic",
-                   backward_mode="stochastic"):
-    return BlockRounding.apply(x, forward_wl, backward_wl, forward_mode,
-                backward_mode)
+def block_quantize(x, forward_wl=-1, backward_wl=-1, forward_rounding="stochastic",
+                   backward_rounding="stochastic"):
+    return BlockRounding.apply(x, forward_wl, backward_wl, forward_rounding,
+                backward_rounding)

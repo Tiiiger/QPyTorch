@@ -2,29 +2,50 @@ import torch
 import torch.nn as nn
 from .quant_function import *
 
-class BlockQuantizer(nn.Module):
-    def __init__(self, forward_wl, backward_wl, forward_mode, backward_mode):
-        super(BlockQuantizer, self).__init__()
-        self.forward_wl=forward_wl
-        self.backward_wl=backward_wl
-        self.forward_mode=forward_mode
-        self.backward_mode=backward_mode
+class Quantizer(nn.Module):
+    def __init__(self, forward_wl, forward_fl, backward_wl, backward_fl,
+                 forward_rounding, backward_rounding, forward_type, backward_type):
+        super(Quantizer, self).__init__()
+        for rounding in [forward_rounding, backward_rounding]:
+            assert rounding in ["stochastic", "nearest"], "invalid rounding type".format(rounding)
+        for num_type in [forward_type, backward_type]:
+            assert num_type in ["fixed", "block"], "invalid rounding type".format(rounding)
+
+        class Rounding(torch.autograd.Function):
+            @staticmethod
+            def forward(self, x):
+                if forward_rounding=="nearest":
+                    raise NotImplementedError("not implement nearest rounding.")
+                elif forward_rounding=="stochastic":
+                    size = 1
+                    for n in x.size(): size *= n
+                    start = np.random.randint(0, R.size(0)-size-1)
+                    r = R[start:start+size].view_as(x)
+                    if forward_type=="block":
+                        out = quant_cuda.block_quantize(x, r, forward_wl)
+                    elif forward_type=="fixed":
+                        out = quant_cuda.fixed_point_quantize(x, r, forward_wl, forward_fl)
+                    return out
+
+            @staticmethod
+            def backward(self, grad_output):
+                if self.needs_input_grad[0] and backward_wl > 0:
+                    if backward_rounding=="nearest":
+                        raise NotImplementedError("not implement nearest rounding.")
+                    elif backward_rounding=="stochastic":
+                        size = 1
+                        for n in grad_output.size(): size *= n
+                        start = np.random.randint(0, R.size(0)-size-1)
+                        r = R[start:start+size].view_as(grad_output)
+                        if backward_type=="block":
+                            grad_input = quant_cuda.block_quantize(grad_output, r, forward_wl)
+                        elif backward_type=="fixed":
+                            grad_input = quant_cuda.fixed_point_quantize(grad_output, r, forward_wl, forward_fl)
+                else:
+                    grad_input = grad_output
+                return grad_input, None, None, None, None
+
+        self.quantize = Rounding.apply
 
     def forward(self, x):
-        return block_quantize(x, self.forward_wl, self.backward_wl,
-                              self.forward_mode, self.backward_mode)
-
-class FixedQuantizer(nn.Module):
-    def __init__(self, forward_wl, forward_fl, backward_wl, backward_fl, forward_mode, backward_mode):
-        super(FixedQuantizer, self).__init__()
-        self.forward_wl=forward_wl
-        self.forward_fl=forward_fl
-        self.backward_wl=backward_wl
-        self.backward_fl=backward_fl
-        self.forward_mode=forward_mode
-        self.backward_mode=backward_mode
-
-    def forward(self, x):
-        return fixed_point_quantize(x, self.forward_wl, self.forward_fl,
-                              self.backward_wl, self.backward_fl,
-                              self.forward_mode, self.backward_mode)
+        return self.quantize(x)
