@@ -9,7 +9,7 @@ class Quantizer(nn.Module):
         for rounding in [forward_rounding, backward_rounding]:
             assert rounding in ["stochastic", "nearest"], "invalid rounding type".format(rounding)
         for num_type in [forward_type, backward_type]:
-            assert num_type in ["fixed", "block"], "invalid rounding type".format(rounding)
+            assert num_type in ["fixed", "block", "float"], "invalid rounding type".format(rounding)
 
         class Rounding(torch.autograd.Function):
             @staticmethod

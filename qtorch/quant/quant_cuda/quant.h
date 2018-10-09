@@ -12,10 +12,11 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl);
  * quantize a FloatTensor into fixed point number with word length [wl]
  * and fractional bits [fl]
  **/
-Tensor block_quantize_cuda(Tensor a, Tensor r, int wl);
+Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl);
 
 /**
- * quantize a FloatTensor into fixed point number with word length [wl]
- * and fractional bits [fl]
+ * quantize a FloatTensor into a low bit-width floating point Tensor
+ * with [man_bits] mantissa bits and [exp_bits] exponent bits.
+ * Does not handle NaN, Inf, and denormal.
  **/
-Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl);
+Tensor float_quantize_cuda(Tensor a, Tensor r, int man_bits, int exp_bits);

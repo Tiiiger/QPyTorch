@@ -1,4 +1,4 @@
-qtorch/dist
+qtorch/quant/dist
 qtorch/playground*
 qtorch/demo*
 qtorch/*ipynb*
@@ -11,3 +11,7 @@ example/data
 example/cifar10
 example/checkpoint
 playground/build
+build
+*.egg-info
+dist
+*ipynb*

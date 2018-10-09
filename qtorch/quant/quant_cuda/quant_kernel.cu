@@ -54,7 +54,7 @@ __global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
                                                 float *max_entry) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    int exponent = ((int) extract_exponent(max_entry);
+    int exponent = ((int) extract_exponent(max_entry));
     int sigma = exponent-(wl-1);
     o[index] = stochastic_round(a[index], r[index], sigma);
   }
@@ -71,16 +71,15 @@ __global__ void float_kernel(float* __restrict__ a,
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
     man_bits = man_bits-1; // 1 virtual bit
-    unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
-
-    unsigned int old_number = *reinterpret_cast<unsigned int*>(a[index]);
-    unsigned int old_exponent = old_number << 1 >> 1 >> 23;
+    unsigned int old_number = *reinterpret_cast<unsigned int*>(&a[index]);
     unsigned int rand_prob = (unsigned int) r[index];
     unsigned int add_r = old_number+rand_prob;
     int offset = 32-9-man_bits; // float length minus sign bit and exponent bit add 1 virtual bit
     unsigned int mask = (unsigned int) -1 << offset;
     unsigned int quantize = add_r & mask;
     unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
+    // clip exponent
+    unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
     if (quantized_exponent > max_exponent) {
       unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
       unsigned int max_num = (max_exponent << 23) | max_man;
@@ -106,7 +105,7 @@ Tensor float_quantize_cuda(Tensor a, Tensor r, int man_bits, int exp_bits) {
   int blockNums = (size + blockSize - 1) / blockSize;
 
   float_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                         r.data<float>(),
+                                         r.data<int>(),
                                          o.data<float>(),
                                          size,
                                          man_bits,
@@ -150,33 +149,4 @@ Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl) {
                                                             max_entry.data<float>());
   return o;
 
-}
-
-Tensor block_quantize_cuda(Tensor a, Tensor r, int wl) {
-  auto o = at::zeros_like(a);
-  auto dim = a.dim();
-  int64_t size = 1;
-  for (int i=0; i<dim; i++) size *=a.size(i);
-
-  int blockSize = 1024;
-  int blockNums = (size + blockSize - 1) / blockSize;
-
-  short *temp; 
-  cudaMalloc(&temp, blockNums*sizeof(short));
-
-  extract_max_exponent_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                        temp,
-                                                        size);
-  reduce_max_exponent_kernel<<<1, 1024>>>(temp,
-                                          temp,
-                                          blockNums);
-
-  block_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                       r.data<float>(),
-                                                       o.data<float>(),
-                                                       size,
-                                                       wl,
-                                                       temp);
-  cudaFree(temp);
-  return o;
 }

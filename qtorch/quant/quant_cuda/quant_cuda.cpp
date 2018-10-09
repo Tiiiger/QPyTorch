@@ -20,7 +20,14 @@ Tensor block_quantize(Tensor a, Tensor r, int wl) {
   return block_quantize_aten_cuda(a, r, wl);
 }
 
+Tensor float_quantize(Tensor a, Tensor r, int man_bits, int exp_bits) {
+  CHECK_INPUT(a);
+  CHECK_INPUT(r);
+  return float_quantize_cuda(a, r, man_bits, exp_bits);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("fixed_point_quantize", &fixed_point_quantize, "Fixed Point Number Quantization (CUDA)");
   m.def("block_quantize", &block_quantize, "Block Floating Point Number Quantization (CUDA)");
+  m.def("float_quantize", &float_quantize, "Low-Bitwidth Floating Point Number Quantization (CUDA)");
 }
