@@ -9,7 +9,7 @@
 
 using namespace at;
 
-__device__ __forceinline__ float stochastic_round_helper(float a, float r) {
+__device__ __forceinline__ float round_helper(float a, float r) {
   return floor(a+r);
 }
 
@@ -20,22 +20,34 @@ __device__ __forceinline__ T clamp_helper(T a, T min, T max) {
   else return a;
 }
 
-__device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
+__device__ __forceinline__ float round(float a, float r, int sigma) {
   a = ldexp(a, -sigma); 
-  a = stochastic_round_helper(a, r);
+  a = round_helper(a, r);
   a = ldexp(a, sigma);
   return a;
 }
 
 // quantize an array of real numbers into fixed point with word length [wl] and [fl] fractional bits
-// 2**-[sigma] is the smallest unit of the fixed point representation
-__global__ void fixed_point_quantize_copy_kernel(float* __restrict__ a,
-                                                 float* __restrict__ r,
-                                                 float* o, int size, int sigma,
-                                                 float t_min, float t_max) {
+// 2**-[sigma] is the smallest unit of the fixed point representation. Stochastic Rounding with r.
+__global__ void fixed_point_quantize_copy_kernel_stochastic(float* __restrict__ a,
+                                                            float* __restrict__ r,
+                                                            float* o, int size, int sigma,
+                                                            float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    o[index] = stochastic_round(a[index], r[index], sigma);
+    o[index] = round(a[index], r[index], sigma);
+    o[index] = clamp_helper(o[index], t_min, t_max);
+  }
+}
+
+// quantize an array of real numbers into fixed point with word length [wl] and [fl] fractional bits
+// 2**-[sigma] is the smallest unit of the fixed point representation. Nearest Neighbor Rounding.
+__global__ void fixed_point_quantize_copy_kernel_nearest(float* __restrict__ a,
+                                                         float* o, int size, int sigma,
+                                                         float t_min, float t_max) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    o[index] = round(a[index], 0.5, sigma);
     o[index] = clamp_helper(o[index], t_min, t_max);
   }
 }
@@ -48,16 +60,30 @@ __device__ __forceinline__ unsigned int extract_exponent(float *a) {
 
 // quantize an array of real number into block floating point
 // each number has word length [wl] and [max_entry] is the maximum number
-// in array
-__global__ void block_quantize_copy_aten_kernel(float* __restrict__ a,
-                                                float* __restrict__ r,
-                                                float* o, int size, int wl,
-                                                float *max_entry) {
+// in array. Stochastic Rounding
+__global__ void block_quantize_copy_aten_kernel_stochastic(float* __restrict__ a,
+                                                           float* __restrict__ r,
+                                                           float* o, int size, int wl,
+                                                           float *max_entry) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
     int exponent = ((int) extract_exponent(max_entry));
     int sigma = exponent-(wl-1);
-    o[index] = stochastic_round(a[index], r[index], sigma);
+    o[index] = round(a[index], r[index], sigma);
+  }
+}
+
+// quantize an array of real number into block floating point
+// each number has word length [wl] and [max_entry] is the maximum number
+// in array. Stochastic Rounding
+__global__ void block_quantize_copy_aten_kernel_nearest(float* __restrict__ a,
+                                                        float* o, int size, int wl,
+                                                        float *max_entry) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    int exponent = ((int) extract_exponent(max_entry));
+    int sigma = exponent-(wl-1);
+    o[index] = round(a[index], 0.5, sigma);
   }
 }
 
@@ -92,7 +118,7 @@ __global__ void float_kernel(float* __restrict__ a,
   }
 }
 
-Tensor float_quantize_cuda(Tensor a, int man_bits, int exp_bits) {
+Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits) {
   // use external random number right now
   auto o = zeros_like(a);
   int max_rand = 1 << (32-9-(man_bits-1)); // 32 bits float, 1 sign bit, 8 exp, 1 virtual
@@ -110,7 +136,7 @@ Tensor float_quantize_cuda(Tensor a, int man_bits, int exp_bits) {
   return o;
 }
 
-Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
+Tensor fixed_point_quantize_stochastic_cuda(Tensor a, Tensor r, int wl, int fl) {
   // use external random number right now
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
@@ -120,17 +146,36 @@ Tensor fixed_point_quantize_cuda(Tensor a, Tensor r, int wl, int fl) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_copy_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                             r.data<float>(),
-                                                             o.data<float>(),
-                                                             size,
-                                                             sigma,
-                                                             t_min,
-                                                             t_max);
+  fixed_point_quantize_copy_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                        r.data<float>(),
+                                                                        o.data<float>(),
+                                                                        size,
+                                                                        sigma,
+                                                                        t_min,
+                                                                        t_max);
   return o;
 }
 
-Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl) {
+Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl) {
+  // use external random number right now
+  auto o = at::zeros_like(a);
+  int64_t size = a.numel();
+  int sigma = -fl;
+  float t_min = -ldexp(1.0, wl-fl-1);
+  float t_max = -t_min-sigma;
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  fixed_point_quantize_copy_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                     o.data<float>(),
+                                                                     size,
+                                                                     sigma,
+                                                                     t_min,
+                                                                     t_max);
+  return o;
+}
+
+Tensor block_quantize_stochastic_aten_cuda(Tensor a, Tensor r, int wl) {
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
 
@@ -138,12 +183,27 @@ Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  block_quantize_copy_aten_kernel<<<blockNums, blockSize>>>(a.data<float>(),
-                                                            r.data<float>(),
-                                                            o.data<float>(),
-                                                            size,
-                                                            wl,
-                                                            max_entry.data<float>());
+  block_quantize_copy_aten_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                       r.data<float>(),
+                                                                       o.data<float>(),
+                                                                       size,
+                                                                       wl,
+                                                                       max_entry.data<float>());
   return o;
+}
 
+Tensor block_quantize_nearest_aten_cuda(Tensor a, int wl) {
+  auto o = at::zeros_like(a);
+  int64_t size = a.numel();
+
+  Tensor max_entry = at::max(at::abs(a));
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  block_quantize_copy_aten_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                    o.data<float>(),
+                                                                    size,
+                                                                    wl,
+                                                                    max_entry.data<float>());
+  return o;
 }

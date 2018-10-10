@@ -145,11 +145,17 @@ elif args.dataset=="IMAGENET12": num_classes=1000
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 if args.auto_low:
-    quant = lambda : Quantizer(args.wl_activate, args.wl_error,
-                               args.fl_activate, args.fl_error,
-                               args.activate_rounding, args.error_rounding,
-                               args.activate_type, args.error_type)
-    lower(model, quant, ["conv", "activation"])
+    lower(model, 
+          layer_types=["conv", "activation"], 
+          wl_activate=args.wl_activate, 
+          wl_error=args.wl_error,
+          fl_activate=args.fl_activate, 
+          fl_error=args.fl_error,
+          activate_rounding=args.activate_rounding,
+          error_rounding=args.error_rounding,
+          activate_type=args.activate_type,
+          error_type=args.error_type
+    )
 print('SGD training')
 
 
