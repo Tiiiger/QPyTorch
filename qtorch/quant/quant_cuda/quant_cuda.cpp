@@ -20,10 +20,9 @@ Tensor block_quantize(Tensor a, Tensor r, int wl) {
   return block_quantize_aten_cuda(a, r, wl);
 }
 
-Tensor float_quantize(Tensor a, Tensor r, int man_bits, int exp_bits) {
+Tensor float_quantize(Tensor a, int man_bits, int exp_bits) {
   CHECK_INPUT(a);
-  CHECK_INPUT(r);
-  return float_quantize_cuda(a, r, man_bits, exp_bits);
+  return float_quantize_cuda(a, man_bits, exp_bits);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
