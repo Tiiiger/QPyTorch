@@ -118,7 +118,7 @@ __global__ void float_kernel(float* __restrict__ a,
   }
 }
 
-Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
+Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits) {
   // use external random number right now
   auto o = zeros_like(a);
   int max_rand = 1 << (32-9-(man_bits-1)); // 32 bits float, 1 sign bit, 8 exp, 1 virtual
