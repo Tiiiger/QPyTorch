@@ -27,6 +27,7 @@ class FixedPointRounding(torch.autograd.Function):
             quant_module = quant_cuda
         else:
             quant_module = quant_cpu
+
         self.backward_wl = backward_wl
         self.backward_fl = backward_fl
         self.backward_rounding = backward_rounding
@@ -36,14 +37,13 @@ class FixedPointRounding(torch.autograd.Function):
         assert forward_rounding in ["stochastic", "nearest"]
         assert backward_rounding in ["stochastic", "nearest"]
 
-
         if forward_wl == -1: return x
 
         if forward_rounding=="nearest":
-            raise NotImplementedError("not implement nearest rounding.")
+            out = quant_module.fixed_point_quantize_nearest(x, forward_wl, forward_fl)
         elif forward_rounding=="stochastic":
             r = make_r(x)
-            out = quant_module.fixed_point_quantize(x, r, forward_wl, forward_fl)
+            out = quant_module.fixed_point_quantize_stochastic(x, r, forward_wl, forward_fl)
         return out
 
     @staticmethod
@@ -58,12 +58,15 @@ class FixedPointRounding(torch.autograd.Function):
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
                 if self.backward_rounding=="nearest":
-                    raise NotImplementedError("not implement nearest rounding.")
+                    # raise NotImplementedError("not implement nearest rounding.")
+                    grad_input = quant_module.fixed_point_quantize_nearest(grad_output,
+                                                                           self.backward_wl,
+                                                                           self.backward_fl)
                 elif self.backward_rounding=="stochastic":
                     r = make_r(x)
-                    grad_input = quant_module.fixed_point_quantize(grad_output, r,
-                                                                   self.backward_wl,
-                                                                   self.backward_fl)
+                    grad_input = quant_module.fixed_point_quantize_stochastic(grad_output, r,
+                                                                              self.backward_wl,
+                                                                              self.backward_fl)
             else:
                 grad_input = grad_output
 
@@ -80,10 +83,11 @@ class BlockRounding(torch.autograd.Function):
 
         if forward_wl == -1: return x
         if forward_rounding=="nearest":
-            raise NotImplementedError("not implement nearest rounding.")
+            # raise NotImplementedError("not implement nearest rounding.")
+            out = quant_cuda.block_quantize_nearest(x, forward_wl)
         elif forward_rounding=="stochastic":
             r = make_r(x)
-            out = quant_cuda.block_quantize(x, r, forward_wl)
+            out = quant_cuda.block_quantize_stochastic(x, r, forward_wl)
 
         return out
 
@@ -92,10 +96,11 @@ class BlockRounding(torch.autograd.Function):
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
                 if self.backward_rounding=="nearest":
-                    raise NotImplementedError("not implement nearest rounding.")
+                    # raise NotImplementedError("not implement nearest rounding.")
+                    grad_input = quant_cuda.block_quantize_nearest(grad_output, self.backward_wl)
                 elif self.backward_rounding=="stochastic":
                     r = make_r(x)
-                    grad_input = quant_cuda.block_quantize(grad_output, r, self.backward_wl)
+                    grad_input = quant_cuda.block_quantize_stochastic(grad_output, r, self.backward_wl)
             else:
                 grad_input = grad_output
         return grad_input, None, None, None, None
