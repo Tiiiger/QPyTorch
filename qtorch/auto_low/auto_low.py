@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from qtorch.quant import *
 
 CONV_LAYERS = [nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.ConvTranspose1d, nn.ConvTranspose2d,
                nn.ConvTranspose3d, nn.Unfold, nn.Fold]
@@ -52,28 +53,6 @@ LAYERS_TYPES = {
                     "loss":LOSS_LAYERS
                }
 
-def _resnet_get_apply_lower_func(quant):
-    def _insert_LP_layer(module):
-        """Insert quant layer after every
-        CONV*
-        ACTIVATION*
-        layers
-        """
-        old_forward = module.forward
-        if type(module) in CONV_LAYERS:
-            module.forward = lambda *input : quant()(old_forward(*input))
-        # elif type(module) in LINEAR_LAYERS:
-        #     module.forward = lambda *input : quant()(old_forward(*input))
-        elif type(module) in ACTIVATION_LAYERS:
-            module.forward = lambda *input : quant()(old_forward(*input))
-        else:
-            return
-    return _insert_LP_layer
-
-def resnet_lower(model, quant):
-    lower_func = _resnet_get_apply_lower_func(quant)
-    model.apply(lower_func)
-
 def _get_apply_lower_func(quant, layer_types=[]):
     def _insert_LP_layer(module):
         """Insert quant layer for all layers so long as in layer_types
@@ -90,8 +69,22 @@ def _get_apply_lower_func(quant, layer_types=[]):
             return
     return _insert_LP_layer
 
-def lower(model, quant, layer_types):
+def lower(model, 
+          layer_types=[], 
+          wl_activate=None, 
+          wl_error=None,
+          fl_activate=None, 
+          fl_error=None,
+          activate_rounding=None,
+          error_rounding=None,
+          activate_type=None,
+          error_type=None):
+    quant = lambda : Quantizer(wl_activate, wl_error,
+                               fl_activate, fl_error,
+                               activate_rounding, error_rounding,
+                               activate_type, error_type)
     lower_func = _get_apply_lower_func(quant, layer_types=layer_types)
     model.apply(lower_func)
+
 
 
