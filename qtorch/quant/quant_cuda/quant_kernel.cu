@@ -9,7 +9,7 @@
 
 using namespace at;
 
-__device__ __forceinline__ float stochastic_round_helper(float a, float r) {
+__device__ __forceinline__ float round_helper(float a, float r) {
   return floor(a+r);
 }
 
@@ -20,9 +20,9 @@ __device__ __forceinline__ T clamp_helper(T a, T min, T max) {
   else return a;
 }
 
-__device__ __forceinline__ float stochastic_round(float a, float r, int sigma) {
+__device__ __forceinline__ float round(float a, float r, int sigma) {
   a = ldexp(a, -sigma); 
-  a = stochastic_round_helper(a, r);
+  a = round_helper(a, r);
   a = ldexp(a, sigma);
   return a;
 }
@@ -35,7 +35,7 @@ __global__ void fixed_point_quantize_copy_kernel_stochastic(float* __restrict__ 
                                                             float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    o[index] = stochastic_round(a[index], r[index], sigma);
+    o[index] = round(a[index], r[index], sigma);
     o[index] = clamp_helper(o[index], t_min, t_max);
   }
 }
@@ -47,7 +47,7 @@ __global__ void fixed_point_quantize_copy_kernel_nearest(float* __restrict__ a,
                                                          float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    o[index] = stochastic_round(a[index], 0.5, sigma);
+    o[index] = round(a[index], 0.5, sigma);
     o[index] = clamp_helper(o[index], t_min, t_max);
   }
 }
@@ -69,7 +69,7 @@ __global__ void block_quantize_copy_aten_kernel_stochastic(float* __restrict__ a
   if (index < size) {
     int exponent = ((int) extract_exponent(max_entry));
     int sigma = exponent-(wl-1);
-    o[index] = stochastic_round(a[index], r[index], sigma);
+    o[index] = round(a[index], r[index], sigma);
   }
 }
 
@@ -83,7 +83,7 @@ __global__ void block_quantize_copy_aten_kernel_nearest(float* __restrict__ a,
   if (index < size) {
     int exponent = ((int) extract_exponent(max_entry));
     int sigma = exponent-(wl-1);
-    o[index] = stochastic_round(a[index], 0.5, sigma);
+    o[index] = round(a[index], 0.5, sigma);
   }
 }
 
