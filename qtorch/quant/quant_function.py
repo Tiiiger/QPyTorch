@@ -10,11 +10,11 @@ def assert_wl_fl(wl, fl, stage):
     if wl == -1 and fl != -1:
         raise ValueError("fixed point {} wl {}, fl {}".format(stage, wl, fl))
 
-def make_r(x):
-    size = 1
-    for n in x.size(): size *= n
-    start = np.random.randint(0, R.size(0)-size-1)
-    r = R[start:start+size].view_as(x)
+def make_r(x, random=R):
+    size = x.numel()
+    start = np.random.randint(0, random.size(0)-size-1)
+    r = random[start:start+size]
+    r = r.view_as(x)
     return r
 
 class FixedPointRounding(torch.autograd.Function):
@@ -93,21 +93,23 @@ class FloatRounding(torch.autograd.Function):
 
     @staticmethod
     def forward(self, x, forward_man_bits=-1, forward_exp_bits=-1, backward_man_bits=-1, backward_exp_bits=-1,
-                forward_rounding="stochastic", backward_rounding="stochastic"):
-        self.backward_wl = backward_wl
+                forward_rounding="stochastic", backward_rounding="stochastic", random=R):
+        self.backward_man_bits = backward_man_bits
         self.backward_exp_bits = backward_exp_bits
         self.backward_rounding = backward_rounding
 
         assert forward_rounding in ["stochastic", "nearest"]
         assert backward_rounding in ["stochastic", "nearest"]
 
+        assert forward_man_bits < 23
+        assert backward_man_bits < 23
+
         if forward_man_bits == -1: return x
 
         if forward_rounding=="nearest":
             raise NotImplementedError("not implement nearest rounding.")
         elif forward_rounding=="stochastic":
-            r = make_r(x)
-            out = quant_cuda.float_quantize(x, r, forward_man_bits, forward_exp_bits)
+            out = quant_cuda.float_quantize(x, forward_man_bits, forward_exp_bits)
         return out
 
     @staticmethod
@@ -119,8 +121,8 @@ class FloatRounding(torch.autograd.Function):
                 if self.backward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
                 elif self.backward_rounding=="stochastic":
-                    r = make_r(x)
-                    grad_input = quant_cuda.fixed_point_quantize(grad_output, r,
+                    r = make_r(x, random)
+                    grad_input = quant_cuda.fixed_point_quantize(grad_output,
                                                                  self.backward_man_bits,
                                                                  self.backward_exp_bits)
             else:
@@ -142,4 +144,4 @@ def float_quantize(x, forward_man_bits=-1, forward_exp_bits=-1, backward_man_bit
                    backward_exp_bits=-1, forward_rounding="stochastic",
                    backward_rounding="stochastic"):
     return FloatRounding.apply(x, forward_man_bits, forward_exp_bits, backward_man_bits, backward_exp_bits,
-                               forward_rounding, backward_rounding)
+                               forward_rounding, backward_rounding, random)

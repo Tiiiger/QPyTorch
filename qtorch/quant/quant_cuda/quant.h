@@ -19,4 +19,4 @@ Tensor block_quantize_aten_cuda(Tensor a, Tensor r, int wl);
  * with [man_bits] mantissa bits and [exp_bits] exponent bits.
  * Does not handle NaN, Inf, and denormal.
  **/
-Tensor float_quantize_cuda(Tensor a, Tensor r, int man_bits, int exp_bits);
+Tensor float_quantize_cuda(Tensor a, int man_bits, int exp_bits);
