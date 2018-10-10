@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+__all__ =  ['lower']
+
 CONV_LAYERS = [nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.ConvTranspose1d, nn.ConvTranspose2d,
                nn.ConvTranspose3d, nn.Unfold, nn.Fold]
 
@@ -12,7 +14,7 @@ POOL_LAYERS = [nn.MaxPool1d, nn.MaxPool2d, nn.MaxPool3d, nn.MaxUnpool1d, nn.MaxU
                nn.AdaptiveMaxPool3d, nn.AdaptiveAvgPool3d]
 
 PAD_LAYERS = [nn.ReflectionPad1d, nn.ReflectionPad2d,
-              nn.ReplicationPad1d, nn.ReplicationPad2d, 
+              nn.ReplicationPad1d, nn.ReplicationPad2d,
               nn.ZeroPad2d,
               nn.ConstantPad1d, nn.ConstantPad2d, nn.ConstantPad3d]
 
@@ -20,7 +22,7 @@ ACTIVATION_LAYERS = [nn.ELU, nn.Hardshrink, nn.Hardtanh, nn.LeakyReLU, nn.LogSig
                      nn.PReLU, nn.ReLU, nn.ReLU6, nn.RReLU,
                      nn.SELU, nn.Sigmoid, nn.Softplus, nn.Softshrink,
                      nn.Softsign, nn.Tanh, nn.Tanhshrink, nn.Threshold,
-                     nn.Softmin, nn.Softmax, nn.Softmax2d, nn.LogSoftmax, 
+                     nn.Softmin, nn.Softmax, nn.Softmax2d, nn.LogSoftmax,
                     ]#nn.AdaptiveLogSoftmaxWithLoss]
 
 NORM_LAYERS = [nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,

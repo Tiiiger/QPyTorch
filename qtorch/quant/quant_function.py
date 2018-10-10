@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+__all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize']
 R = torch.cuda.FloatTensor(int(1e8)).uniform_()
 
 def assert_wl_fl(wl, fl, stage):
