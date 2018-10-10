@@ -13,7 +13,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
-from qtorch.auto_low import resnet_lower, lower
+from qtorch.auto_low import lower
 from qtorch.optim import SGDLP
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
@@ -72,6 +72,8 @@ parser.add_argument('--no-quant-bn', action='store_true',
                     help='not quantize batch norm (default: off)')
 parser.add_argument('--auto_low', action='store_true', default=False,
                     help='auto_low')
+parser.add_argument('--half', action='store_true', default=False,
+                    help='use half precision model')
 
 args = parser.parse_args()
 
@@ -145,17 +147,19 @@ elif args.dataset=="IMAGENET12": num_classes=1000
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 if args.auto_low:
-    lower(model, 
-          layer_types=["conv", "activation"], 
-          wl_activate=args.wl_activate, 
+    lower(model,
+          layer_types=["conv", "activation"],
+          wl_activate=args.wl_activate,
           wl_error=args.wl_error,
-          fl_activate=args.fl_activate, 
+          fl_activate=args.fl_activate,
           fl_error=args.fl_error,
           activate_rounding=args.activate_rounding,
           error_rounding=args.error_rounding,
           activate_type=args.activate_type,
           error_type=args.error_type
     )
+if args.half:
+    model.half()
 print('SGD training')
 
 
@@ -207,11 +211,10 @@ for epoch in range(start_epoch, args.epochs):
     lr = schedule(epoch, args.lr_type)
     writer.add_scalar("lr", lr, epoch)
     utils.adjust_learning_rate(optimizer, lr)
-    train_res = utils.train_epoch( loaders['train'], model, criterion,
-            optimizer, weight_quantizer, grad_quantizer, writer, epoch,
-            quant_bias=(not args.no_quant_bias),
-            quant_bn=(not args.no_quant_bn),
-            log_error=args.log_error)
+    train_res = utils.run_epoch(loaders['train'], model, criterion,
+                                optimizer=optimizer, writer=writer,
+                                log_error=args.log_error, phase="train",
+                                half=args.half)
     log_result(writer, "train", train_res, epoch+1)
 
     # Write parameters
@@ -224,11 +227,10 @@ for epoch in range(start_epoch, args.epochs):
 
     # Validation
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-        utils.bn_update(loaders['train'], model)
-        test_res = utils.eval(loaders['test'], model, criterion)
+        test_res = utils.run_epoch(loaders['test'], model, criterion, phase="eval", half=args.half)
         log_result(writer, "test", test_res, epoch+1)
         if args.val_ratio > 0:
-            val_res = utils.eval(loaders['val'], model, criterion)
+            val_res = utils.run_epoch(loaders['val'], model, criterion, phase="eval", half=args.half)
             log_result(writer, "val", val_res, epoch+1)
     else:
         test_res = {'loss': None, 'accuracy': None}

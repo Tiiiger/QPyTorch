@@ -17,128 +17,35 @@ def save_checkpoint(dir, epoch, **kwargs):
     torch.save(state, filepath)
 
 
-def train_epoch(loader, model, criterion, optimizer, weight_quantizer, grad_quantizer,
-                writer, epoch, quant_bias=True, quant_bn=True, log_error=False):
+def run_epoch(loader, model, criterion, optimizer=None, writer=None,
+                log_error=False, phase="train", half=False):
+    assert phase in ["train", "eval"], "invalid running phase"
     loss_sum = 0.0
     correct = 0.0
 
-    model.train()
+    if phase=="train": model.train()
+    elif phase=="eval": model.eval()
+
     ttl = 0
-    for i, (input, target) in enumerate(loader):
-        input = input.cuda(async=True)
-        target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
+    with torch.autograd.set_grad_enabled(phase=="train"):
+        for i, (input, target) in enumerate(loader):
+            if half: input = input.cuda(async=True).half()
+            target = target.cuda(async=True)
+            output = model(input)
+            loss = criterion(output, target)
 
-        output = model(input_var)
-        loss = criterion(output, target_var)
+            loss_sum += loss.cpu().item() * input.size(0)
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).sum()
+            ttl += input.size()[0]
 
-        optimizer.zero_grad()
-        loss.backward()
-
-        optimizer.step()
-
-        loss_sum += loss.cpu().item() * input.size(0)
-        pred = output.data.max(1, keepdim=True)[1]
-        correct += pred.eq(target_var.data.view_as(pred)).sum()
-        ttl += input.size()[0]
+            if phase=="train":
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
     correct = correct.cpu().item()
-    # print("Correct:%s/%s, %s"%(correct, len(loader.dataset), ttl))
     return {
         'loss': loss_sum / float(ttl),
         'accuracy': correct / float(ttl) * 100.0,
     }
-
-
-def eval(loader, model, criterion):
-    loss_sum = 0.0
-    correct = 0.0
-
-    model.eval()
-    cnt = 0
-    with torch.no_grad():
-        for i, (input, target) in enumerate(loader):
-            input = input.cuda(async=True)
-            target = target.cuda(async=True)
-            input_var = torch.autograd.Variable(input)
-            target_var = torch.autograd.Variable(target)
-
-            output = model(input_var)
-            loss = criterion(output, target_var)
-
-            loss_sum += loss.data.cpu().item() * input.size(0)
-            pred = output.data.max(1, keepdim=True)[1]
-            correct += pred.eq(target_var.data.view_as(pred)).sum()
-            cnt += int(input.size()[0])
-
-    correct = correct.cpu().item()
-    # print("Correct:%s/%s, %s"%(correct, len(loader.dataset), cnt))
-    return {
-        'loss': loss_sum / float(cnt),
-        'accuracy': correct / float(cnt) * 100.0,
-    }
-
-
-def moving_average(net1, net2, alpha=1):
-    for param1, param2 in zip(net1.parameters(), net2.parameters()):
-        param1.data *= (1.0 - alpha)
-        param1.data += param2.data * alpha
-
-
-def _check_bn(module, flag):
-    if issubclass(module.__class__, torch.nn.modules.batchnorm._BatchNorm):
-        flag[0] = True
-
-
-def check_bn(model):
-    flag = [False]
-    model.apply(lambda module: _check_bn(module, flag))
-    return flag[0]
-
-
-def reset_bn(module):
-    if issubclass(module.__class__, torch.nn.modules.batchnorm._BatchNorm):
-        module.running_mean = torch.zeros_like(module.running_mean)
-        module.running_var = torch.ones_like(module.running_var)
-
-
-def _get_momenta(module, momenta):
-    if issubclass(module.__class__, torch.nn.modules.batchnorm._BatchNorm):
-        momenta[module] = module.momentum
-
-
-def _set_momenta(module, momenta):
-    if issubclass(module.__class__, torch.nn.modules.batchnorm._BatchNorm):
-        module.momentum = momenta[module]
-
-
-def bn_update(loader, model):
-    """
-        BatchNorm buffers update (if any).
-        Performs 1 epochs to estimate buffers average using train dataset.
-
-        :param loader: train dataset loader for buffers average estimation.
-        :param model: model being update
-        :return: None
-    """
-    if not check_bn(model):
-        return
-    model.train()
-    momenta = {}
-    model.apply(reset_bn)
-    model.apply(lambda module: _get_momenta(module, momenta))
-    n = 0
-    for input, _ in loader:
-        input = input.cuda(async=True)
-        input_var = torch.autograd.Variable(input)
-        b = input_var.data.size(0)
-
-        momentum = b / (n + b)
-        for module in momenta.keys():
-            module.momentum = momentum
-
-        model(input_var)
-        n += b
-
-    model.apply(lambda module: _set_momenta(module, momenta))
