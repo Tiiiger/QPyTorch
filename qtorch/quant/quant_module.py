@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .quant_function import *
+import numpy as np
 
 __all__ = ['Quantizer']
 

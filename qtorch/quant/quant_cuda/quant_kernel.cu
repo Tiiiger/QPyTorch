@@ -5,7 +5,6 @@
 #include <cuda_runtime.h>
 #include <ATen/ATen.h>
 #include <vector>
-#include "quant_kernel.h"
 
 using namespace at;
 
