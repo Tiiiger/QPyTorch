@@ -1,0 +1,25 @@
+python train.py --dataset CIFAR10 \
+                --data_path ./data \
+                --model VGG16 \
+                --epochs=200 \
+                --lr_init=0.05 \
+                --wd=5e-4 \
+                --name half \
+                --weight-man 10 \
+                --grad-man 10 \
+                --momentum-man 10 \
+                --activate-man 10 \
+                --error-man 10 \
+                --weight-type float \
+                --grad-type float \
+                --momentum-type float \
+                --activate-type float \
+                --error-type float \
+                --weight-exp 5 \
+                --grad-exp 5 \
+                --momentum-exp 5 \
+                --activate-exp 5 \
+                --error-exp 5 \
+                --seed 100 \
+                --batch_size 128 \
+                --auto_low;
