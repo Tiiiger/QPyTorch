@@ -17,10 +17,10 @@ Tensor block_quantize_nearest(Tensor a, int wl) {
   return block_quantize_nearest_aten_cuda(a, wl);
 }
 
-// Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
-//   CHECK_INPUT(a);
-//   return float_quantize_nearest_cuda(a, man_bits, exp_bits);
-// }
+Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
+  CHECK_INPUT(a);
+  return float_quantize_nearest_cuda(a, man_bits, exp_bits);
+}
 
 Tensor fixed_point_quantize_stochastic(Tensor a, Tensor r, int wl, int fl) {
   CHECK_INPUT(a);
@@ -45,5 +45,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("float_quantize_stochastic", &float_quantize_stochastic, "Low-Bitwidth Floating Point Number Stochastic Quantization (CUDA)");
   m.def("fixed_point_quantize_nearest", &fixed_point_quantize_nearest, "Fixed Point Number Nearest Neighbor Quantization (CUDA)");
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CUDA)");
-  // m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CUDA)");
+  m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CUDA)");
 }
