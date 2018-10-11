@@ -4,12 +4,12 @@ python train.py --dataset CIFAR10 \
                 --epochs=200 \
                 --lr_init=0.05 \
                 --wd=5e-4 \
-                --name half_simulate \
-                --weight-man 10 \
-                --grad-man 10 \
-                --momentum-man 10 \
-                --activate-man 10 \
-                --error-man 10 \
+                --name half_stochastic \
+                --weight-man 11 \
+                --grad-man 11 \
+                --momentum-man 11 \
+                --activate-man 11 \
+                --error-man 11 \
                 --weight-type float \
                 --grad-type float \
                 --momentum-type float \
