@@ -120,13 +120,15 @@ class FloatRounding(torch.autograd.Function):
 
         assert forward_man_bits < 23
         assert backward_man_bits < 23
+        assert forward_exp_bits < 8
+        assert backward_exp_bits < 8
 
         if forward_man_bits == -1: return x
 
         if forward_rounding=="nearest":
             raise NotImplementedError("not implement nearest rounding.")
         elif forward_rounding=="stochastic":
-            out = quant_cuda.float_quantize(x, forward_man_bits, forward_exp_bits)
+            out = quant_cuda.float_quantize_stochastic(x, forward_man_bits, forward_exp_bits)
         return out
 
     @staticmethod
@@ -138,10 +140,9 @@ class FloatRounding(torch.autograd.Function):
                 if self.backward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
                 elif self.backward_rounding=="stochastic":
-                    r = make_r(x, random)
-                    grad_input = quant_cuda.fixed_point_quantize(grad_output,
-                                                                 self.backward_man_bits,
-                                                                 self.backward_exp_bits)
+                    grad_input = quant_cuda.float_quantize_stochastic(grad_output,
+                                                                      self.backward_man_bits,
+                                                                      self.backward_exp_bits)
             else:
                 grad_input = grad_output
 
@@ -161,4 +162,4 @@ def float_quantize(x, forward_man_bits=-1, forward_exp_bits=-1, backward_man_bit
                    backward_exp_bits=-1, forward_rounding="stochastic",
                    backward_rounding="stochastic"):
     return FloatRounding.apply(x, forward_man_bits, forward_exp_bits, backward_man_bits, backward_exp_bits,
-                               forward_rounding, backward_rounding, random)
+                               forward_rounding, backward_rounding)

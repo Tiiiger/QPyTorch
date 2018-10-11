@@ -102,14 +102,14 @@ __global__ void float_kernel(float* __restrict__ a,
     unsigned int mask = (unsigned int) -1 << offset;
     unsigned int quantize = add_r & mask;
     // clip exponent
-    // unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
-    // unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
-    // if (quantized_exponent > max_exponent) {
-    //   unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
-    //   unsigned int max_num = (max_exponent << 23) | max_man;
-    //   unsigned int old_sign = old_number >> 31 << 31;
-    //   quantize = old_sign | max_num;
-    // }
+    unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
+    unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
+    if (quantized_exponent > max_exponent) {
+      unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
+      unsigned int max_num = (max_exponent << 23) | max_man;
+      unsigned int old_sign = old_number >> 31 << 31;
+      quantize = old_sign | max_num;
+    }
     float quantize_float = *reinterpret_cast<float*>(&quantize);
     o[index] = quantize_float;
   }

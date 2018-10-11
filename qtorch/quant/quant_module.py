@@ -7,6 +7,7 @@ __all__ = ['Quantizer']
 
 class Quantizer(nn.Module):
     def __init__(self, forward_wl, forward_fl, backward_wl, backward_fl,
+                 forward_man, backward_man, forward_exp, backward_exp,
                  forward_rounding, backward_rounding, forward_type, backward_type):
         super(Quantizer, self).__init__()
         for rounding in [forward_rounding, backward_rounding]:
@@ -17,7 +18,12 @@ class Quantizer(nn.Module):
         class Rounding(torch.autograd.Function):
             @staticmethod
             def forward(self, x):
-                if forward_wl == -1: return x
+
+                if forward_type=="block" or forward_type=="fixed":
+                    if forward_wl==-1: return x
+                elif forward_type=="float":
+                    if forward_man==-1 and forward_exp==-1: return x
+
                 if forward_rounding=="nearest":
                     raise NotImplementedError("not implement nearest rounding.")
                 elif forward_rounding=="stochastic":
@@ -29,6 +35,8 @@ class Quantizer(nn.Module):
                         out = quant_cuda.block_quantize(x, r, forward_wl)
                     elif forward_type=="fixed":
                         out = quant_cuda.fixed_point_quantize(x, r, forward_wl, forward_fl)
+                    elif forward_type=="float":
+                        out = quant_cuda.float_point_quantize_stochastic(x, r, forward_wl, forward_fl)
                     return out
 
             @staticmethod
