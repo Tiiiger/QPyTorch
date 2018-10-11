@@ -118,10 +118,10 @@ class FloatRounding(torch.autograd.Function):
         assert forward_rounding in ["stochastic", "nearest"]
         assert backward_rounding in ["stochastic", "nearest"]
 
-        assert forward_man_bits < 23
-        assert backward_man_bits < 23
-        assert forward_exp_bits < 8
-        assert backward_exp_bits < 8
+        assert forward_man_bits <= 23
+        assert backward_man_bits <= 23
+        assert forward_exp_bits <= 8
+        assert backward_exp_bits <= 8
 
         if forward_man_bits == -1: return x
 
