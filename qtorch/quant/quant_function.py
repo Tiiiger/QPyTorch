@@ -59,7 +59,6 @@ class FixedPointRounding(torch.autograd.Function):
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
                 if self.backward_rounding=="nearest":
-                    # raise NotImplementedError("not implement nearest rounding.")
                     grad_input = quant_module.fixed_point_quantize_nearest(grad_output,
                                                                            self.backward_wl,
                                                                            self.backward_fl)
@@ -89,7 +88,6 @@ class BlockRounding(torch.autograd.Function):
 
         if forward_wl == -1: return x
         if forward_rounding=="nearest":
-            # raise NotImplementedError("not implement nearest rounding.")
             out = quant_module.block_quantize_nearest(x, forward_wl)
         elif forward_rounding=="stochastic":
             r = make_r(x)
@@ -107,7 +105,6 @@ class BlockRounding(torch.autograd.Function):
         if self.needs_input_grad[0]:
             if self.backward_wl > 0:
                 if self.backward_rounding=="nearest":
-                    # raise NotImplementedError("not implement nearest rounding.")
                     grad_input = quant_module.block_quantize_nearest(grad_output, self.backward_wl)
                 elif self.backward_rounding=="stochastic":
                     r = make_r(x)
@@ -188,9 +185,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                     out = quant_module.fixed_point_quantize_nearest(x, forward_wl, forward_fl)
                 return out
             elif forward_rounding=="stochastic":
-                size = x.numel()
-                start = np.random.randint(0, R.size(0)-size-1)
-                r = R[start:start+size].view_as(x)
+                r = make_r(grad_output)
                 if forward_type=="block":
                     out = quant_module.block_quantize_stochastic(x, r, forward_wl)
                 elif forward_type=="fixed":
@@ -212,9 +207,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                         elif backward_type=="fixed":
                             grad_input = quant_module.fixed_point_quantize_nearest(grad_output, backward_wl, backward_fl)
                     elif backward_rounding=="stochastic":
-                        size = grad_output.numel()
-                        start = np.random.randint(0, R.size(0)-size-1)
-                        r = R[start:start+size].view_as(grad_output)
+                        r = make_r(grad_output)
                         if backward_type=="block":
                             grad_input = quant_module.block_quantize_stochastic(grad_output, r, backward_wl)
                         elif backward_type=="fixed":
