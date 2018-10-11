@@ -29,7 +29,8 @@ def run_epoch(loader, model, criterion, optimizer=None, writer=None,
     ttl = 0
     with torch.autograd.set_grad_enabled(phase=="train"):
         for i, (input, target) in enumerate(loader):
-            if half: input = input.cuda(async=True).half()
+            input = input.cuda(async=True)
+            if half: input = input.half()
             target = target.cuda(async=True)
             output = model(input)
             loss = criterion(output, target)

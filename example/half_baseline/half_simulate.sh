@@ -4,7 +4,7 @@ python train.py --dataset CIFAR10 \
                 --epochs=200 \
                 --lr_init=0.05 \
                 --wd=5e-4 \
-                --name half \
+                --name half_simulate \
                 --weight-man 10 \
                 --grad-man 10 \
                 --momentum-man 10 \

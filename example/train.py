@@ -60,8 +60,12 @@ for num in num_types:
                         help='word length in bits for {}; -1 if full precision.'.format(num))
     parser.add_argument('--fl-{}'.format(num), type=int, default=-1, metavar='N',
                         help='number of fractional bits for {}; -1 if full precision.'.format(num))
+    parser.add_argument('--{}-man'.format(num), type=int, default=-1, metavar='N',
+                        help='number of bits to use for mantissa of {}; -1 if full precision.'.format(num))
+    parser.add_argument('--{}-exp'.format(num), type=int, default=-1, metavar='N',
+                        help='number of bits to use for exponent of {}; -1 if full precision.'.format(num))
     parser.add_argument('--{}-type'.format(num), type=str, default="block", metavar='S',
-                        choices=["fixed", "block"],
+                        choices=["fixed", "block", "float"],
                         help='quantization type for {}; fixed or block.'.format(num))
     parser.add_argument('--{}-rounding'.format(num), type=str, default='stochastic', metavar='S',
                         choices=["stochastic","nearest"],
@@ -90,31 +94,40 @@ writer = SummaryWriter(log_dir=log_name)
 
 
 # Select quantizer
-def quant_summary(number_type, wl, fl):
-    if wl == -1:
-        return "float"
+def quant_summary(number_type, wl=-1, fl=-1, man=-1, exp=-1):
+    if wl == -1 and man == -1:
+        return "native float"
     if number_type=="fixed":
         return "fixed-{}{}".format(wl, fl)
     elif number_type=="block":
         return "block-{}".format(wl)
+    elif number_type=="float":
+        return "float-e{}-m{}".format(man, exp)
 
 for num in num_types:
     num_type = getattr(args, "{}_type".format(num))
     num_rounding = getattr(args, "{}_rounding".format(num))
     num_wl = getattr(args, "wl_{}".format(num))
     num_fl = getattr(args, "fl_{}".format(num))
+    num_man = getattr(args, "{}_man".format(num))
+    num_exp = getattr(args, "{}_exp".format(num))
     print("{}: {} rounding, {}".format(num, num_rounding,
-          quant_summary(num_type, num_wl, num_fl)))
+          quant_summary(num_type, wl=num_wl, fl=num_fl, man=num_man, exp=num_exp)))
 
 def make_quantizer(num):
     num_wl = getattr(args, "wl_{}".format(num))
     num_fl = getattr(args, "fl_{}".format(num))
     num_type = getattr(args, "{}_type".format(num))
     num_rounding = getattr(args, "{}_rounding".format(num))
+    num_man = getattr(args, "{}_man".format(num))
+    num_exp = getattr(args, "{}_exp".format(num))
     if num_type=="fixed":
-        return lambda x : fixed_point_quantize(x, num_wl, num_fl, -1, -1, forward_rounding=num_rounding)
+        return lambda x : fixed_point_quantize(x, forward_wl=num_wl, forward_fl=num_fl, forward_rounding=num_rounding)
     elif num_type=="block":
-        return lambda x : block_quantize(x, num_wl, -1, forward_rounding=num_rounding)
+        return lambda x : block_quantize(x, forward_wl=num_wl, forward_rounding=num_rounding)
+    elif num_type=="float":
+        return lambda x : float_quantize(x, forward_man_bits=num_man, forward_exp_bits=num_exp,
+                                         forward_rounding=num_rounding)
 
 weight_quantizer = make_quantizer("weight")
 grad_quantizer = make_quantizer("grad")
@@ -136,11 +149,6 @@ if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
     raise NotImplemented
-    # model_cfg.kwargs.update(
-    #     {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
-    #      "backward_wl":args.wl_error, "backward_fl":args.fl_error,
-    #      "forward_layer_type":args.layer_type,
-    #      "forward_round_type":args.quant_type})
 
 if args.dataset=="CIFAR10": num_classes=10
 elif args.dataset=="IMAGENET12": num_classes=1000

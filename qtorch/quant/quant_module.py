@@ -50,9 +50,9 @@ class Quantizer(nn.Module):
                         start = np.random.randint(0, R.size(0)-size-1)
                         r = R[start:start+size].view_as(grad_output)
                         if backward_type=="block":
-                            grad_input = quant_cuda.block_quantize(grad_output, r, forward_wl)
+                            grad_input = quant_cuda.block_quantize(grad_output, r, backward_wl)
                         elif backward_type=="fixed":
-                            grad_input = quant_cuda.fixed_point_quantize(grad_output, r, forward_wl, forward_fl)
+                            grad_input = quant_cuda.fixed_point_quantize(grad_output, r, backward_wl, backward_fl)
                 else:
                     grad_input = grad_output
                 return grad_input, None, None, None, None
