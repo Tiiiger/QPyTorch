@@ -206,12 +206,13 @@ if args.resume is not None:
     optimizer.load_state_dict(checkpoint['optimizer'])
 
 # Prepare logging
-columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_loss', 'te_acc', 'time']
+columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'tr_time', 'te_loss', 'te_acc', 'te_time']
 
 def log_result(writer, name, res, step):
     writer.add_scalar("{}/loss".format(name),     res['loss'],            step)
     writer.add_scalar("{}/acc_perc".format(name), res['accuracy'],        step)
     writer.add_scalar("{}/err_perc".format(name), 100. - res['accuracy'], step)
+    writer.add_scalar("{}/time_pass".format(name), res['time_pass'], step)
 
 for epoch in range(start_epoch, args.epochs):
     time_ep = time.time()
@@ -223,6 +224,8 @@ for epoch in range(start_epoch, args.epochs):
                                 optimizer=optimizer, writer=writer,
                                 log_error=args.log_error, phase="train",
                                 half=args.half)
+    time_pass = time.time() - time_ep
+    train_res['time_pass'] = time_pass
     log_result(writer, "train", train_res, epoch+1)
 
     # Write parameters
@@ -234,18 +237,31 @@ for epoch in range(start_epoch, args.epochs):
                 "gradient/%s"%name, param.grad.clone().cpu().data.numpy(), epoch)
 
     # Validation
+    if args.val_ratio > 0:
+        time_ep = time.time()
+        val_res = utils.eval(loaders['val'], model, criterion)
+        time_pass = time.time() - time_ep
+        val_res['time_pass'] = time_pass
+        log_result(writer, "val", val_res, epoch+1)
+
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
+        utils.bn_update(loaders['train'], model)
+        time_ep = time.time()
         test_res = utils.run_epoch(loaders['test'], model, criterion, phase="eval", half=args.half)
+        time_pass = time.time() - time_ep
+        test_res['time_pass'] = time_pass
         log_result(writer, "test", test_res, epoch+1)
+
         if args.val_ratio > 0:
+            time_ep = time.time()
             val_res = utils.run_epoch(loaders['val'], model, criterion, phase="eval", half=args.half)
+            time_pass = time.time() - time_ep
+            val_res['time_pass'] = time_pass
             log_result(writer, "val", val_res, epoch+1)
     else:
-        test_res = {'loss': None, 'accuracy': None}
-        val_res = {'loss': None, 'accuracy': None}
+        test_res = {'loss': None, 'accuracy': None, 'time_pass': None}
 
-    time_ep = time.time() - time_ep
-    values = [epoch + 1, lr, train_res['loss'], train_res['accuracy'], test_res['loss'], test_res['accuracy'], time_ep]
+    values = [epoch + 1, lr, train_res['loss'], train_res['accuracy'], train_res['time_pass'], test_res['loss'], test_res['accuracy'], test_res['time_pass']]
 
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='8.4f')
     if epoch % 40 == 0:
