@@ -148,16 +148,22 @@ model_cfg = getattr(models, args.model)
 if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
-    raise NotImplemented
+    # raise NotImplemented
+    pass
+    # model_cfg.kwargs.update(
+    #     {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
+    #      "backward_wl":args.wl_error, "backward_fl":args.fl_error,
+    #      "forward_layer_type":args.layer_type,
+    #      "forward_round_type":args.quant_type})
 
 if args.dataset=="CIFAR10": num_classes=10
 elif args.dataset=="IMAGENET12": num_classes=1000
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 if args.auto_low:
-    lower(model,
-          layer_types=["conv", "activation"],
-          wl_activate=args.wl_activate,
+    lower(model, 
+          layer_types=["activation"], 
+          wl_activate=args.wl_activate, 
           wl_error=args.wl_error,
           fl_activate=args.fl_activate,
           fl_error=args.fl_error,
