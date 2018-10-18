@@ -66,7 +66,7 @@ def _get_apply_lower_func(quant, layer_types=[]):
 
         old_forward = module.forward
         if type(module) in lp_layer_types:
-            module.forward = lambda *input : quant()(old_forward(*input))
+            module.forward = lambda *input : quant(old_forward(*input))
         else:
             return
     return _insert_LP_layer
@@ -85,12 +85,14 @@ def lower(model,
           error_rounding=None,
           activate_type=None,
           error_type=None):
-    quant = lambda : Quantizer(wl_activate, wl_error,
-                               fl_activate, fl_error,
-                               activate_man, error_man,
-                               activate_exp, error_exp,
-                               activate_rounding, error_rounding,
-                               activate_type, error_type)
+    quant = Quantizer(wl_activate, wl_error,
+                      fl_activate, fl_error,
+                      activate_man,
+                      error_man,
+                      activate_exp,
+                      error_exp,
+                      activate_rounding, error_rounding,
+                      activate_type, error_type)
     lower_func = _get_apply_lower_func(quant, layer_types=layer_types)
     model.apply(lower_func)
 
