@@ -245,7 +245,7 @@ for epoch in range(start_epoch, args.epochs):
         log_result(writer, "val", val_res, epoch+1)
 
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-        utils.bn_update(loaders['train'], model)
+        # utils.bn_update(loaders['train'], model)
         time_ep = time.time()
         test_res = utils.run_epoch(loaders['test'], model, criterion, phase="eval", half=args.half)
         time_pass = time.time() - time_ep

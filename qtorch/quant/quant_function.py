@@ -173,6 +173,11 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
     for num_type in [forward_type, backward_type]:
         assert num_type in ["fixed", "block", "float"], "invalid rounding type".format(rounding)
 
+    assert forward_man <= 23
+    assert backward_man <= 23
+    assert forward_exp <= 8
+    assert backward_exp <= 8
+
     class Rounding(torch.autograd.Function):
         @staticmethod
         def forward(self, x):
@@ -186,11 +191,6 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
             elif forward_type=="float":
                 if forward_man==-1 and forward_exp==-1: return x
 
-            assert forward_man_bits <= 23
-            assert backward_man_bits <= 23
-            assert forward_exp_bits <= 8
-            assert backward_exp_bits <= 8
-
             if forward_rounding=="nearest":
                 if forward_type=="block":
                     out = quant_module.block_quantize_nearest(x, forward_wl)
@@ -198,17 +198,17 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                     out = quant_module.fixed_point_quantize_nearest(x, forward_wl, forward_fl)
                 elif forward_type=="float":
                     out = quant_cuda.float_point_quantize_nearest(x, forward_man_bits, forward_exp_bits)
-                return out
             elif forward_rounding=="stochastic":
                 if forward_type=="block":
-                    r = make_r(grad_output)
+                    r = make_r(x)
                     out = quant_module.block_quantize_stochastic(x, r, forward_wl)
                 elif forward_type=="fixed":
-                    r = make_r(grad_output)
+                    r = make_r(x)
                     out = quant_module.fixed_point_quantize_stochastic(x, r, forward_wl, forward_fl)
                 elif forward_type=="float":
                     out = quant_module.float_point_quantize_stochastic(x, forward_man_bits, forward_exp_bits)
-                return out
+
+            return out
 
         @staticmethod
         def backward(self, grad_output):
@@ -239,6 +239,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                     grad_input = grad_output
             else:
                 grad_input = None
+
             return grad_input, None, None, None, None
 
     return Rounding.apply
