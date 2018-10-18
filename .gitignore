@@ -14,4 +14,4 @@ playground/build
 build
 *.egg-info
 dist
-*ipynb*
+# *ipynb*
