@@ -197,7 +197,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                 elif forward_type=='fixed':
                     out = quant_module.fixed_point_quantize_nearest(x, forward_wl, forward_fl)
                 elif forward_type=="float":
-                    out = quant_cuda.float_point_quantize_nearest(x, forward_man_bits, forward_exp_bits)
+                    out = quant_module.float_point_quantize_nearest(x, forward_man_bits, forward_exp_bits)
             elif forward_rounding=="stochastic":
                 if forward_type=="block":
                     r = make_r(x)
