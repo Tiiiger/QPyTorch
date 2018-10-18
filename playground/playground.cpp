@@ -16,14 +16,15 @@ int float_experiment() {
   std::bitset<8> exp_bits(exp);
   std::cout << "exponent: " << ((int)exp)-126 << " exponent bits: " << exp_bits << "\n";
   unsigned int man = a_int << 9 >> 9;
-  std::bitset<23> man_bits(man);
+  std::bitset<32> man_bits(man);
   std::cout << "mantissa bits: " << man_bits << "\n";
   // stochastic rounding
   int wl = 3; // word length
   wl = wl - 2; // sign bit and virtual bit
   srand(time(NULL));
-  unsigned int r = ((unsigned int)rand()) << (9+wl) >> (9+wl);
-  std::bitset<23> random_bits(r);
+  // unsigned int r = ((unsigned int)rand()) << (9+wl) >> (9+wl);
+  unsigned int r = ((unsigned int) -1) >> 31 << 31 >> (9+wl);
+  std::bitset<32> random_bits(r);
   std::cout << "random bits:   " << random_bits << "\n";
   std::cout << "bit string before add: " << a_bitstring << "\n";
   unsigned int addr = a_int+r;
@@ -88,7 +89,13 @@ int max_number_experiment() {
   std::cout << "sign bit only is :             " << old_sign_bits << "\n";
 }
 
-int main() {
-  float_experiment();
+int clip_exponent_experiment() {
+  int wl = 2;
+  unsigned int max_man = (unsigned int) -1 << (32-wl) >> 9;
+  std::bitset<32> max_man_bits(max_man);
+  std::cout << "max man bits: " << max_man_bits << "\n";
+}
 
+int main() {
+  clip_exponent_experiment();
 }
