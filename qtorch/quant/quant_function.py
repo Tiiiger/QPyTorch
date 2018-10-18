@@ -197,7 +197,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                 elif forward_type=='fixed':
                     out = quant_module.fixed_point_quantize_nearest(x, forward_wl, forward_fl)
                 elif forward_type=="float":
-                    out = quant_module.float_point_quantize_nearest(x, forward_man_bits, forward_exp_bits)
+                    out = quant_module.float_quantize_nearest(x, forward_man, forward_exp)
             elif forward_rounding=="stochastic":
                 if forward_type=="block":
                     r = make_r(x)
@@ -206,7 +206,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                     r = make_r(x)
                     out = quant_module.fixed_point_quantize_stochastic(x, r, forward_wl, forward_fl)
                 elif forward_type=="float":
-                    out = quant_module.float_point_quantize_stochastic(x, forward_man_bits, forward_exp_bits)
+                    out = quant_module.float_quantize_stochastic(x, forward_man, forward_exp)
 
             return out
 
@@ -225,7 +225,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                         elif backward_type=="fixed":
                             grad_input = quant_module.fixed_point_quantize_nearest(grad_output, backward_wl, backward_fl)
                         elif backward_type=="float":
-                            grad_input = quant_module.float_point_quantize_nearest(grad_output, backward_wl, backward_fl)
+                            grad_input = quant_module.float_quantize_nearest(grad_output, backward_man, backward_exp)
                     elif backward_rounding=="stochastic":
                         if backward_type=="block":
                             r = make_r(grad_output)
@@ -234,7 +234,7 @@ def quantize(forward_wl, forward_fl, backward_wl, backward_fl,
                             r = make_r(grad_output)
                             grad_input = quant_module.fixed_point_quantize_stochastic(grad_output, r, backward_wl, backward_fl)
                         elif backward_type=="float":
-                            grad_input = quant_module.float_point_quantize_stochastic(grad_output, backward_wl, backward_fl)
+                            grad_input = quant_module.float_quantize_stochastic(grad_output, backward_man, backward_exp)
                 else:
                     grad_input = grad_output
             else:
