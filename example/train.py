@@ -60,8 +60,12 @@ for num in num_types:
                         help='word length in bits for {}; -1 if full precision.'.format(num))
     parser.add_argument('--fl-{}'.format(num), type=int, default=-1, metavar='N',
                         help='number of fractional bits for {}; -1 if full precision.'.format(num))
+    parser.add_argument('--{}-man'.format(num), type=int, default=-1, metavar='N',
+                        help='number of bits to use for mantissa of {}; -1 if full precision.'.format(num))
+    parser.add_argument('--{}-exp'.format(num), type=int, default=-1, metavar='N',
+                        help='number of bits to use for exponent of {}; -1 if full precision.'.format(num))
     parser.add_argument('--{}-type'.format(num), type=str, default="block", metavar='S',
-                        choices=["fixed", "block"],
+                        choices=["fixed", "block", "float"],
                         help='quantization type for {}; fixed or block.'.format(num))
     parser.add_argument('--{}-rounding'.format(num), type=str, default='stochastic', metavar='S',
                         choices=["stochastic","nearest"],
@@ -72,6 +76,8 @@ parser.add_argument('--no-quant-bn', action='store_true',
                     help='not quantize batch norm (default: off)')
 parser.add_argument('--auto_low', action='store_true', default=False,
                     help='auto_low')
+parser.add_argument('--half', action='store_true', default=False,
+                    help='use half precision model')
 
 args = parser.parse_args()
 
@@ -88,31 +94,40 @@ writer = SummaryWriter(log_dir=log_name)
 
 
 # Select quantizer
-def quant_summary(number_type, wl, fl):
-    if wl == -1:
-        return "float"
+def quant_summary(number_type, wl=-1, fl=-1, man=-1, exp=-1):
+    if wl == -1 and man == -1:
+        return "native float"
     if number_type=="fixed":
         return "fixed-{}{}".format(wl, fl)
     elif number_type=="block":
         return "block-{}".format(wl)
+    elif number_type=="float":
+        return "float-e{}-m{}".format(man, exp)
 
 for num in num_types:
     num_type = getattr(args, "{}_type".format(num))
     num_rounding = getattr(args, "{}_rounding".format(num))
     num_wl = getattr(args, "wl_{}".format(num))
     num_fl = getattr(args, "fl_{}".format(num))
+    num_man = getattr(args, "{}_man".format(num))
+    num_exp = getattr(args, "{}_exp".format(num))
     print("{}: {} rounding, {}".format(num, num_rounding,
-          quant_summary(num_type, num_wl, num_fl)))
+          quant_summary(num_type, wl=num_wl, fl=num_fl, man=num_man, exp=num_exp)))
 
 def make_quantizer(num):
     num_wl = getattr(args, "wl_{}".format(num))
     num_fl = getattr(args, "fl_{}".format(num))
     num_type = getattr(args, "{}_type".format(num))
     num_rounding = getattr(args, "{}_rounding".format(num))
+    num_man = getattr(args, "{}_man".format(num))
+    num_exp = getattr(args, "{}_exp".format(num))
     if num_type=="fixed":
-        return lambda x : fixed_point_quantize(x, num_wl, num_fl, -1, -1, forward_rounding=num_rounding)
+        return lambda x : fixed_point_quantize(x, forward_wl=num_wl, forward_fl=num_fl, forward_rounding=num_rounding)
     elif num_type=="block":
-        return lambda x : block_quantize(x, num_wl, -1, forward_rounding=num_rounding)
+        return lambda x : block_quantize(x, forward_wl=num_wl, forward_rounding=num_rounding)
+    elif num_type=="float":
+        return lambda x : float_quantize(x, forward_man_bits=num_man, forward_exp_bits=num_exp,
+                                         forward_rounding=num_rounding)
 
 weight_quantizer = make_quantizer("weight")
 grad_quantizer = make_quantizer("grad")
@@ -134,28 +149,25 @@ if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
     raise NotImplemented
-    # model_cfg.kwargs.update(
-    #     {"forward_wl":args.wl_activate, "forward_fl":args.fl_activate,
-    #      "backward_wl":args.wl_error, "backward_fl":args.fl_error,
-    #      "forward_layer_type":args.layer_type,
-    #      "forward_round_type":args.quant_type})
 
 if args.dataset=="CIFAR10": num_classes=10
 elif args.dataset=="IMAGENET12": num_classes=1000
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 if args.auto_low:
-    lower(model, 
-          layer_types=["conv", "activation"], 
-          wl_activate=args.wl_activate, 
+    lower(model,
+          layer_types=["conv", "activation"],
+          wl_activate=args.wl_activate,
           wl_error=args.wl_error,
-          fl_activate=args.fl_activate, 
+          fl_activate=args.fl_activate,
           fl_error=args.fl_error,
           activate_rounding=args.activate_rounding,
           error_rounding=args.error_rounding,
           activate_type=args.activate_type,
           error_type=args.error_type
     )
+if args.half:
+    model.half()
 print('SGD training')
 
 
@@ -208,11 +220,10 @@ for epoch in range(start_epoch, args.epochs):
     lr = schedule(epoch, args.lr_type)
     writer.add_scalar("lr", lr, epoch)
     utils.adjust_learning_rate(optimizer, lr)
-    train_res = utils.train_epoch( loaders['train'], model, criterion,
-            optimizer, weight_quantizer, grad_quantizer, writer, epoch,
-            quant_bias=(not args.no_quant_bias),
-            quant_bn=(not args.no_quant_bn),
-            log_error=args.log_error)
+    train_res = utils.run_epoch(loaders['train'], model, criterion,
+                                optimizer=optimizer, writer=writer,
+                                log_error=args.log_error, phase="train",
+                                half=args.half)
     time_pass = time.time() - time_ep
     train_res['time_pass'] = time_pass
     log_result(writer, "train", train_res, epoch+1)
@@ -234,12 +245,19 @@ for epoch in range(start_epoch, args.epochs):
         log_result(writer, "val", val_res, epoch+1)
 
     if epoch == 0 or epoch % args.eval_freq == args.eval_freq - 1 or epoch == args.epochs - 1:
-        utils.bn_update(loaders['train'], model)
+        # utils.bn_update(loaders['train'], model)
         time_ep = time.time()
-        test_res = utils.eval(loaders['test'], model, criterion)
+        test_res = utils.run_epoch(loaders['test'], model, criterion, phase="eval", half=args.half)
         time_pass = time.time() - time_ep
         test_res['time_pass'] = time_pass
         log_result(writer, "test", test_res, epoch+1)
+
+        if args.val_ratio > 0:
+            time_ep = time.time()
+            val_res = utils.run_epoch(loaders['val'], model, criterion, phase="eval", half=args.half)
+            time_pass = time.time() - time_ep
+            val_res['time_pass'] = time_pass
+            log_result(writer, "val", val_res, epoch+1)
     else:
         test_res = {'loss': None, 'accuracy': None, 'time_pass': None}
 

@@ -1,0 +1,30 @@
+python train.py --dataset CIFAR10 \
+                --data_path ./data \
+                --model VGG16 \
+                --epochs=200 \
+                --lr_init=0.05 \
+                --wd=5e-4 \
+                --name bfloat \
+                --weight-man 8 \
+                --grad-man 8 \
+                --momentum-man 8 \
+                --activate-man 8 \
+                --error-man 8 \
+                --weight-type float \
+                --grad-type float \
+                --momentum-type float \
+                --activate-type float \
+                --error-type float \
+                --weight-rounding nearest \
+                --grad-rounding nearest \
+                --momentum-rounding nearest \
+                --activate-rounding nearest \
+                --error-rounding nearest \
+                --weight-exp 8 \
+                --grad-exp 8 \
+                --momentum-exp 8 \
+                --activate-exp 8 \
+                --error-exp 8 \
+                --seed 100 \
+                --batch_size 128 \
+                --auto_low;
