@@ -98,18 +98,20 @@ __global__ void float_kernel(float* __restrict__ a,
     unsigned int old_number = *reinterpret_cast<unsigned int*>(&a[index]);
     unsigned int rand_prob = (unsigned int) r[index];
     unsigned int add_r = old_number+rand_prob;
-    int offset = 32-9-man_bits; // float length minus sign bit and exponent bit add 1 virtual bit
+    int offset = 32-9-man_bits; // float length minus sign bit and exponent bit
     unsigned int mask = (unsigned int) -1 << offset;
     unsigned int quantize = add_r & mask;
     // clip exponent
-    // unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
-    // unsigned int max_exponent = (unsigned int) -1 << (32-exp_bits) >> (32-exp_bits);
-    // if (quantized_exponent > max_exponent) {
-    //   unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
-    //   unsigned int max_num = (max_exponent << 23) | max_man;
-    //   unsigned int old_sign = old_number >> 31 << 31;
-    //   quantize = old_sign | max_num;
-    // }
+    unsigned int quantized_exponent = quantize << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
+    int quantized_sign_exponent = quantized_exponent - 126; // exponent bias and virtual bit
+    int max_sign_exponent = 1<<(exp_bits-1);
+    if (quantized_sign_exponent > max_sign_exponent) {
+      unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
+      unsigned int max_exponent = (unsigned int) -1 << 1 >> (32-exp_bits) << 23;
+      unsigned int max_num = (max_exponent << 23) | max_man;
+      unsigned int old_sign = old_number >> 31 << 31;
+      quantize = old_sign | max_num;
+    }
     float quantize_float = *reinterpret_cast<float*>(&quantize);
     o[index] = quantize_float;
   }

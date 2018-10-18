@@ -6,7 +6,7 @@
 
 int float_experiment() {
   // investigation of the floating point format
-  float a_float = -0.19;
+  float a_float = (2<<6) + 0.1231;
   std::cout << "float number: " << a_float << "\n";
   unsigned int a_int = *reinterpret_cast<unsigned int*>(&a_float);
   std::bitset<32> a_bitstring(a_int);
@@ -19,7 +19,7 @@ int float_experiment() {
   std::bitset<23> man_bits(man);
   std::cout << "mantissa bits: " << man_bits << "\n";
   // stochastic rounding
-  int wl = 2; // word length
+  int wl = 3; // word length
   wl = wl - 2; // sign bit and virtual bit
   srand(time(NULL));
   unsigned int r = ((unsigned int)rand()) << (9+wl) >> (9+wl);
@@ -38,21 +38,21 @@ int float_experiment() {
   float quantized_float = *reinterpret_cast<float*>(&quantized);
   std::cout << "quantized float: " << quantized_float << "\n";
   // clip exponent
-  unsigned int qexp = quantized << 1 >> 24;
-  std::bitset<8> qexp_bits(qexp);
-  std::cout << "exponent after qauntization: " << ((int)qexp-126) << "\n";
-  std::cout << "exponent bits after qauntization: " << qexp_bits << "\n";
-  if (qexp > exp) {
-    int offset = 32-9-wl;
-    unsigned int max_mask = (unsigned int) -1 >> offset << offset;
-    std::bitset<32> max_mask_bits(max_mask);
-    std::cout << "max mask: " << max_mask_bits << "\n";
-    quantized = (a_int >> (32-9-wl) << (32-9-wl)) & max_mask;
-    float clipped_quantized_float = *reinterpret_cast<float*>(&quantized);
-    std::bitset<32> clip_quant_bits(quantized);
-    std::cout << "quantized bits after clipping: " << clip_quant_bits << "\n";
-    std::cout << "quantized number after clipping: " << clipped_quantized_float << "\n";
-  }
+  int exp_num_bits = 5;
+  unsigned int quantized_exponent = quantized << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
+  std::bitset<32> quantized_exponent_bits(quantized_exponent);
+  std::cout << "quantized exponent bits: " << quantized_exponent_bits << "\n";
+  int quantized_sign_exponent = quantized_exponent - 126; // exponent bias and virtual bit
+  std::cout << "quantized exponent: " << quantized_sign_exponent << "\n";
+  int max_sign_exponent = 1<<(exp_num_bits-1);
+  std::cout << "maximum exponent: " << max_sign_exponent << "\n";
+  // if (quantized_sign_exponent > max_sign_exponent) {
+  //   unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> offset << offset; // 23 mantissa bits, 1 virtual bit
+  //   unsigned int max_exponent = (unsigned int) -1 << 1 >> (32-exp_bits) << 23;
+  //   unsigned int max_num = (max_exponent << 23) | max_man;
+  //   unsigned int old_sign = old_number >> 31 << 31;
+  //   quantize = old_sign | max_num;
+  // }
   return 0;
 }
 
@@ -89,5 +89,6 @@ int max_number_experiment() {
 }
 
 int main() {
-  max_number_experiment();
+  float_experiment();
+
 }
