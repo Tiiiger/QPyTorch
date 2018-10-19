@@ -96,6 +96,15 @@ int clip_exponent_experiment() {
   std::cout << "max man bits: " << max_man_bits << "\n";
 }
 
+int max_min_experiment(int wl, int fl) {
+  int sigma = -fl;
+  float t_min = -ldexp(1.0, wl-fl-1);
+  float t_max = -t_min-ldexp(1.0, sigma);
+  std::cout << "tmax: " << t_max << " tmin: " << t_min << "\n";
+}
+
 int main() {
-  clip_exponent_experiment();
+  int wl = 3;
+  int fl = 2;
+  max_min_experiment(wl, fl);
 }

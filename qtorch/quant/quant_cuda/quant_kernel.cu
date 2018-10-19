@@ -187,7 +187,7 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, Tensor r, int wl, int fl) 
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-sigma;
+  float t_max = -t_min-ldexp(1.0, sigma);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
@@ -207,7 +207,7 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl) {
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-sigma;
+  float t_max = -t_min-ldexp(1.0, sigma);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 

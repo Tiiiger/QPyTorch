@@ -36,7 +36,7 @@ Tensor fixed_point_quantize_stochastic(Tensor a, Tensor r, int wl, int fl) {
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-sigma;
+  float t_max = -t_min-ldexp(1.0, sigma);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
     o_array[i] = clamp_helper(o_array[i], t_min, t_max);
