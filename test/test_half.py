@@ -10,8 +10,8 @@ if __name__ == "__main__":
         diff =  (a-half_a.float())
         diff2 = diff**2
         return diff2.sum()
-    print("native single half difference {}".format(compute_dist(a, half_a)))
     sim_half_a = float_quantize(a, forward_man_bits=man, forward_exp_bits=exp, forward_rounding="nearest")
-    print("nearest simulate single half difference {}".format(compute_dist(a, sim_half_a)))
-    sim_half_a = float_quantize(a, forward_man_bits=man, forward_exp_bits=exp, forward_rounding="stochastic")
-    print("stochastic simulate single half difference {}".format(compute_dist(a, sim_half_a)))
+    assert compute_dist(a, sim_half_a) == compute_dist(a, half_a), "half float test [failed]"
+    print("half float test [passed]")
+    #sim_half_a = float_quantize(a, forward_man_bits=man, forward_exp_bits=exp, forward_rounding="stochastic")
+    #print("stochastic simulate single half difference {}".format(compute_dist(a, sim_half_a)))
