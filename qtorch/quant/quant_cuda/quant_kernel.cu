@@ -57,7 +57,7 @@ __device__ __forceinline__ unsigned int extract_exponent(float *a) {
 
 // quantize an array of real number into block floating point
 // each number has word length [wl] and [max_entry] is the maximum number
-// in array. Stochastic Rounding
+// in array. 
 __global__ void block_quantize_copy_aten_kernel_stochastic(float* __restrict__ a,
                                                            float* __restrict__ r,
                                                            float* o, int size, int wl,
@@ -72,7 +72,7 @@ __global__ void block_quantize_copy_aten_kernel_stochastic(float* __restrict__ a
 
 // quantize an array of real number into block floating point
 // each number has word length [wl] and [max_entry] is the maximum number
-// in array. Stochastic Rounding
+// in array.
 __global__ void block_quantize_copy_aten_kernel_nearest(float* __restrict__ a,
                                                         float* o, int size, int wl,
                                                         float *max_entry) {
