@@ -73,26 +73,14 @@ def _get_apply_lower_func(quant, layer_types=[]):
 
 def lower(model,
           layer_types=[],
-          wl_activate=-1,
-          wl_error=-1,
-          fl_activate=-1,
-          fl_error=-1,
-          activate_man=-1,
-          error_man=-1,
-          activate_exp=-1,
-          error_exp=-1,
-          activate_rounding=None,
-          error_rounding=None,
-          activate_type=None,
-          error_type=None):
-    quant = Quantizer(wl_activate, wl_error,
-                      fl_activate, fl_error,
-                      activate_man,
-                      error_man,
-                      activate_exp,
-                      error_exp,
-                      activate_rounding, error_rounding,
-                      activate_type, error_type)
+          forward_number, backward_number,
+          forward_rounding, backward_rounding):
+          # activate_rounding=None,
+          # error_rounding=None,
+          # activate_type=None,
+          # error_type=None):
+    quant = Quantizer(forward_number, backward_number,
+                      forward_rounding, backward_rounding)
     lower_func = _get_apply_lower_func(quant, layer_types=layer_types)
     model.apply(lower_func)
 
