@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import numpy as np
 import math
 
-R = torch.rand(int(1e8)).cuda()
+R = torch.rand(int(1e8))
 
 def _quantize_log(x, wl, fsr, base=math.sqrt(2)):
     sign  = torch.sign(x)
@@ -227,84 +227,21 @@ class FixedQuantizer(nn.Module):
             self.quantize_backward)
 
 if __name__ == "__main__":
-    # import numpy as np
-    # lst = []
-    # scale = 10
-    # target = Variable(-torch.ones(2) * np.random.rand() * scale)
-    # # target = Variable(torch.ones(1) * scale)
-    # print("Target:%.15f"%target.data[0])
-
-    # wl, fl = 16, 14
-    # for i in range(10000):
-    #     out = quantize_stochastic_rounding(target, wl, fl, False)
-    #     lst.append(out.data[0])
-
-    # print("Quantize(ex):%.15f"%out.data[0])
-
-    # expectation = np.array(lst).mean()
-    # print("Expentation :%.15f"%expectation)
-    # print("Target      :%.15f"%target.data[0])
-    # print("Difference  :%.15f"%(abs(expectation - target.data[0])/2.**(-fl)))
-
-
-    # import numpy as np
-    # lst = []
-    # wl, fl = 16, 14
-    # scale = 1e-10
-    # target = Variable(torch.ones(2) * np.random.rand() * scale, requires_grad=True)
-    # input  = Variable(torch.ones(2) * np.random.rand() * scale, requires_grad=True)
-    # output = quantize_stochastic_rounding(input, wl, fl, False)
-    # loss = F.mse_loss(output, target)
-    # # target = Variable(torch.ones(1) * scale)
-    # print("Target:%.15f"%target.data[0])
-    # print("Input :%.15f"%input.data[0])
-    # print("Loss  :%.15f"%loss.data[0])
-    # loss.backward()
-    # print(input.grad)
-
-
-    import numpy as np
-    lst = []
-    wl, fl = 5, 1
-    base = np.sqrt(2.)
-    scale = 1
-    d = 5
-    value = (torch.ones(d) * torch.from_numpy(np.random.rand(d)).float() * scale)
-    # value = (torch.ones(d) * torch.from_numpy(np.random.rand(d)).float() * scale).int().float()
-    target = Variable(value, requires_grad=False)
-    input  = Variable(value, requires_grad=True)
-    output = quantize_log(input, wl, fl, base, False)
-
-    print("Input :%s"%input)
-    print("Output:%s"%output)
-
-    loss = F.mse_loss(output, target)
-    print("Target:%.15f"%target.data[0])
-    print("Output:%.15f"%output.data[0])
-    print("Loss  :%.15f"%loss.data[0])
-    """
-    loss.backward()
-    print("Gradient (auto):%s"%input.grad)
-
-    gcompt = output - target
-    gquant = quantize_log(gcompt, wl, fl, False)
-    print("Gradient (manu):%s"%gcompt)
-    print("Gradient (qunt):%s"%gquant)
-    """
-
-    # import numpy as np
-    # lst = []
-    # wl, fl = 16, 10
-    # scale = 100
-    # target = Variable(torch.ones(2) * np.random.rand() * scale, requires_grad=True)
-    # input  = Variable(torch.ones(2) * np.random.rand() * scale, requires_grad=True)
-    # output = quantize_nearest_rounding(input, wl, fl, False)
-    # loss = F.mse_loss(output, target)
-    # # target = Variable(torch.ones(1) * scale)
-    # print("Target:%.15f"%target.data[0])
-    # print("Input :%.15f"%input.data[0])
-    # print("Output:%.15f"%output.data[0])
-    # print("Loss  :%.15f"%loss.data[0])
-    # loss.backward()
-    # print(input.grad)
-
+    to_quantize = torch.Tensor([0.25, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())
+    to_quantize = torch.Tensor([0.5, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())
+    to_quantize = torch.Tensor([1, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())
+    to_quantize = torch.Tensor([2, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())
+    to_quantize = torch.Tensor([4, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())
+    to_quantize = torch.Tensor([8, 0.87])
+    quantized = block_quantize(to_quantize, 4, "nearest")
+    print(quantized[1].item())

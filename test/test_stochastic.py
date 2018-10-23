@@ -23,10 +23,12 @@ class TestStochastic(unittest.TestCase):
 
     def test_stochastic_block(self):
         number = BlockFloatingPoint(wl=5)
-        a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
+        a = torch.linspace(-0.9, 0.9, steps=100, device='cpu')
         quant = lambda x : block_quantize(x, forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
-        self.assertTrue(((a-exp_a)**2).mean() < 1e-8)
+        diff = ((a-exp_a)**2).mean()
+        print(diff)
+        self.assertTrue((diff < 1e-8))
 
     def test_stochastic_float(self):
         number = FloatingPoint(exp=3, man=5)

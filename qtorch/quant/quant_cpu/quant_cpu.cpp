@@ -1,10 +1,23 @@
 #include <torch/torch.h>
 #include <assert.h>
+// #include <cstdlib>
+// #include <time.h>
+#include <random>
 
 using namespace at;
 
 #define CHECK_CONTIGUOUS(x) assert(x.is_contiguous())
+#define CHECK_DEVICE(x) assert(x.device() == kCPU)
+// #define CHECK_INPUT(x) (CHECK_CONTIGUOUS(x) & CHECK_DEVICE(x))
 #define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
+#define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
+#define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
+#define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
+#define BITS_TO_FLOAT(i, f) assert(sizeof f == sizeof i); std::memcpy(&f, &i, sizeof f)
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> dis(0);
 
 template <typename T>
 T clamp_helper(T a, T min, T max) {
@@ -59,26 +72,78 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl) {
   }
   return o;
 }
+// Tensor block_quantize_stochastic(Tensor a, Tensor r, int wl) {
+//   CHECK_INPUT(a);
+//   CHECK_INPUT(r);
+//   auto a_array = a.data<float>();
+//   auto r_array = r.data<float>();
+//   Tensor o = zeros_like(a);
+//   auto o_array = o.data<float>();
+//   int64_t size = a.numel();
 
-Tensor block_quantize_stochastic(Tensor a, Tensor r, int wl) {
-  CHECK_INPUT(a);
-  CHECK_INPUT(r);
-  auto a_array = a.data<float>();
-  auto r_array = r.data<float>();
-  Tensor o = zeros_like(a);
-  auto o_array = o.data<float>();
-  int64_t size = a.numel();
+//   Tensor max_entry = at::max(at::abs(a));
+//   // auto max_entry = max_tensor.data<float>();
+//   auto max_elem = max_entry.data<float>();
+//   int exponent = ((int) extract_exponent(max_elem));
+//   int sigma = exponent-(wl-1);
+//   for (int64_t i=0; i < size; i++) {
+//     o_array[i] = round(a_array[i], r_array[i], sigma);
+//   }
+//   return o;
+// }
 
-  Tensor max_entry = at::max(at::abs(a));
-  // auto max_entry = max_tensor.data<float>();
-  auto max_elem = max_entry.data<float>();
-  int exponent = ((int) extract_exponent(max_elem));
-  int sigma = exponent-(wl-1);
-  
-  for (int64_t i=0; i < size; i++) {
-    o_array[i] = round(a_array[i], r_array[i], sigma);
+// Tensor block_quantize_nearest(Tensor a, int wl) {
+//   CHECK_INPUT(a);
+//   auto a_array = a.data<float>();
+//   Tensor o = zeros_like(a);
+//   auto o_array = o.data<float>();
+//   int64_t size = a.numel();
+
+//   Tensor max_entry = at::max(at::abs(a));
+//   // auto max_entry = max_tensor.data<float>();
+//   auto max_elem = max_entry.data<float>();
+//   int exponent = ((int) extract_exponent(max_elem));
+//   int sigma = exponent-(wl-1);
+//   for (int64_t i=0; i < size; i++) {
+//     o_array[i] = round(a_array[i], 0.5, sigma);
+//   }
+//   return o;
+// }
+
+enum Mode {rNearest, rStochastic};
+
+unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding){
+  unsigned int mask = (1 << (23-man_bits)) - 1;
+  unsigned int rand_prob;
+  if (rounding == rStochastic) {
+    rand_prob = (dis(gen)) & mask;
+  } else {
+    rand_prob = 1 << (23-man_bits-1);
   }
-  return o;
+  unsigned int add_r = target+rand_prob;
+  unsigned int quantized = add_r & ~mask;
+  return quantized;
+}
+
+void block_quantize_helper(float* input, float* output, float max_elem,
+                           int wl, int size, Mode rounding) {
+  unsigned int max_num;
+  FLOAT_TO_BITS(max_elem, max_num);
+  unsigned int max_exp = max_num << 1 >> 24 << 23;
+  float base_float;
+  BITS_TO_FLOAT(max_exp, base_float);
+  base_float *= 6;
+
+  for (int64_t i=0; i < size; i++) {
+    float target_rebase = input[i]+base_float;
+    unsigned int target_bits;
+    FLOAT_TO_BITS(target_rebase, target_bits);
+    unsigned int quantized_bits = round_bitwise(target_bits, wl, rounding); // -1 sign, -1 virtual, +2 base
+    float quantized_rebase;
+    BITS_TO_FLOAT(quantized_bits, quantized_rebase);
+    float quantized = quantized_rebase-base_float;
+    output[i] = quantized;
+  }
 }
 
 Tensor block_quantize_nearest(Tensor a, int wl) {
@@ -88,15 +153,25 @@ Tensor block_quantize_nearest(Tensor a, int wl) {
   auto o_array = o.data<float>();
   int64_t size = a.numel();
 
+  // get maximum number and base
   Tensor max_entry = at::max(at::abs(a));
-  // auto max_entry = max_tensor.data<float>();
   auto max_elem = max_entry.data<float>();
-  int exponent = ((int) extract_exponent(max_elem));
-  int sigma = exponent-(wl-1);
-  
-  for (int64_t i=0; i < size; i++) {
-    o_array[i] = round(a_array[i], 0.5, sigma);
-  }
+  block_quantize_helper(a_array, o_array, *max_elem, wl, size, rNearest);
+  return o;
+}
+
+Tensor block_quantize_stochastic(Tensor a, int wl) {
+  CHECK_INPUT(a);
+  auto a_array = a.data<float>();
+  Tensor o = zeros_like(a);
+  auto o_array = o.data<float>();
+  int64_t size = a.numel();
+
+  // get maximum number and base
+  Tensor max_entry = at::max(at::abs(a));
+  auto max_elem = max_entry.data<float>();
+  // std::srand(time(0));
+  block_quantize_helper(a_array, o_array, *max_elem, wl, size, rStochastic);
   return o;
 }
 
