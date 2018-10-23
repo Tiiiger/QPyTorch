@@ -103,6 +103,19 @@ int max_min_experiment(int wl, int fl) {
   std::cout << "tmax: " << t_max << " tmin: " << t_min << "\n";
 }
 
+int block_float_offset_experiment(int wl, float max_float, float to_quantize_float) {
+  unsigned int max_num = *reinterpret_cast<unsigned int*>(&max_float);
+  unsigned int max_exp = max_num << 1 >> 24 << 23;
+  float base_float = *reinterpret_cast<float*>(&max_exp);
+  float max_float_add_base = max_float+base_float*6;
+  float to_quantize_float_add_base = to_quantize_float+base_float*6;
+  unsigned int max_num_add_base = *reinterpret_cast<unsigned int*>(&max_float_add_base);
+  unsigned int max_exp_add_base = max_num_add_base << 1 >> 24;
+  unsigned int to_quantize_add_base = *reinterpret_cast<unsigned int*>(&to_quantize_float_add_base);
+  unsigned int to_exp_add_base = to_quantize_add_base << 1 >> 24;
+  int man = wl; // minus sign bit, virtual bit, add 2 bits for the base
+
+}
 int block_float_experiment(float max_float, float to_quantize_float) {
   unsigned int max_num = *reinterpret_cast<unsigned int*>(&max_float);
   unsigned int to_quantize = *reinterpret_cast<unsigned int*>(&to_quantize_float);
@@ -119,6 +132,21 @@ int block_float_experiment(float max_float, float to_quantize_float) {
   std::cout << "max_exp:" << (int)max_exp-127 << "\n";
   std::cout << "to_exp:" << (int)to_exp-127 << "\n";
   std::cout << "offset:" << offset << "\n";
+  unsigned int base = max_exp << 23;
+  float base_float = *reinterpret_cast<float*>(&base);
+  std::cout << "base float: " << base_float << "\n";
+  float max_float_add_base = max_float+base_float*6;
+  float to_quantize_float_add_base = to_quantize_float+base_float*6;
+  unsigned int max_num_add_base = *reinterpret_cast<unsigned int*>(&max_float_add_base);
+  unsigned int max_exp_add_base = max_num_add_base << 1 >> 24;
+  unsigned int to_quantize_add_base = *reinterpret_cast<unsigned int*>(&to_quantize_float_add_base);
+  unsigned int to_exp_add_base = to_quantize_add_base << 1 >> 24;
+  // std::cout << "man af:" << man << "\n";
+  std::cout << "max_exp after add base:" << (int) max_exp_add_base-127 << "\n";
+  std::cout << "to_exp after add base:" << (int) to_exp_add_base-127 << "\n";
+  int offset_add_base = max_exp_add_base-to_exp_add_base;
+  std::cout << "offset after add base:" << offset_add_base << "\n";
+
   if ((man-offset) < 0) {
     float quantized_float = 0;
     std::cout << "quantized float:             " << quantized_float << "\n";
@@ -162,11 +190,76 @@ int block_float_experiment(float max_float, float to_quantize_float) {
   }
 }
 
+#define DEBUG 1
+#define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
+#define BITS_TO_FLOAT(i, f) assert(sizeof f == sizeof i); std::memcpy(&f, &i, sizeof f)
+#define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
+#define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
+
+unsigned int round_bitwise_nearest(unsigned int target, int man_bits){
+  int mask = (1 << (23-man_bits)) - 1;
+  unsigned int rand_prob = rand() & mask;
+  unsigned int add_r = target+rand_prob;
+  if (DEBUG) {
+    std::bitset<32> add_r_string(add_r);
+    std::cout << "after add       :             " << add_r_string << "\n";
+  }
+  unsigned int quantized = add_r & ~mask;
+  return quantized;
+}
+
+float block_quantize_offset_experiment(int wl, float max_elem, float target) {
+  if (DEBUG) {
+    std::bitset<32> target_string(RFLOAT_TO_BITS(&target));
+    std::cout << "target num      :             " << target_string << "\n";
+    std::bitset<32> max_string(RFLOAT_TO_BITS(&max_elem));
+    std::cout << "max num         :             " << max_string << "\n";
+  }
+  // unsigned int max_num = FLOAT_TO_BITS(max_elem);
+  unsigned int max_num;
+  FLOAT_TO_BITS(max_elem, max_num);
+  unsigned int max_exp = max_num << 1 >> 24 << 23;
+  float base_float;
+  BITS_TO_FLOAT(max_exp, base_float);
+  base_float *= 6;
+  float max_rebase = max_elem+base_float;
+
+  float target_rebase = target+base_float;
+  // unsigned int target_bits = FLOAT_TO_BITS(target_rebase);
+  unsigned int target_bits;
+  FLOAT_TO_BITS(target_rebase, target_bits);
+
+  if (DEBUG) {
+    std::bitset<32> target_rebase_string(target_bits);
+    std::cout << "target num      :             " << target_rebase_string << "\n";
+    std::bitset<32> max_rebase_string(RFLOAT_TO_BITS(&max_rebase));
+    std::cout << "max num         :             " << max_rebase_string << "\n";
+  }
+
+  unsigned int quantized_bits = round_bitwise_nearest(target_bits, wl); // -1 sign, -1 virtual, +2 base
+  if (DEBUG) {
+    std::bitset<32> quantized_string(quantized_bits);
+    std::cout << "quantized num   :             " << quantized_string << "\n";
+  }
+  // float quantized_rebase = BITS_TO_FLOAT(quantized);
+  float quantized_rebase;
+  BITS_TO_FLOAT(quantized_bits, quantized_rebase);
+  float result = quantized_rebase-base_float;
+  std::cout << "result: " << result << "\n";
+  return result;
+}
+
+void aten_check_experiment() {
+  at::Tensor a = at::zeros({3, 4});
+  std:: cout << "device: " << a.device() << "\n";
+}
 int main() {
-  // block_float_experiment(0.25, 0.87);
-  // block_float_experiment(0.5, 0.87);
-  // block_float_experiment(1, 0.87);
-  // block_float_experiment(2, 0.87);
-  block_float_experiment(4, 0.87);
-  // block_float_experiment(8, 0.87);
+  // block_quantize_offset_experiment(4, 0.25, 0.87);
+  // block_quantize_offset_experiment(4, 0.5, 0.87);
+  // block_quantize_offset_experiment(4, 1, 0.87);
+  // block_quantize_offset_experiment(4, 2, 0.87);
+  block_quantize_offset_experiment(4, 4, 0.87);
+  block_quantize_offset_experiment(4, 8, 0.87);
+  // aten_check_experiment();
+
 }

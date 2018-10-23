@@ -99,8 +99,7 @@ class BlockRounding(torch.autograd.Function):
         if forward_rounding=="nearest":
             out = quant_module.block_quantize_nearest(x, forward_number.wl)
         elif forward_rounding=="stochastic":
-            r = make_r(x).to(x.device)
-            out = quant_module.block_quantize_stochastic(x, r, forward_number.wl)
+            out = quant_module.block_quantize_stochastic(x, forward_number.wl)
 
         return out
 
@@ -116,8 +115,7 @@ class BlockRounding(torch.autograd.Function):
                 if self.backward_rounding=="nearest":
                     grad_input = quant_module.block_quantize_nearest(grad_output, self.backward_number.wl)
                 elif self.backward_rounding=="stochastic":
-                    r = make_r(x).to(x.device)
-                    grad_input = quant_module.block_quantize_stochastic(grad_output, r, self.backward_number.wl)
+                    grad_input = quant_module.block_quantize_stochastic(grad_output, self.backward_number.wl)
             else:
                 grad_input = grad_output
         return grad_input, None, None, None, None
