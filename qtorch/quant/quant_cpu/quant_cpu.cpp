@@ -1,7 +1,8 @@
 #include <torch/torch.h>
 #include <assert.h>
-#include <cstdlib>
-#include <time.h>
+// #include <cstdlib>
+// #include <time.h>
+#include <random>
 
 using namespace at;
 
@@ -13,6 +14,10 @@ using namespace at;
 #define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
 #define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
 #define BITS_TO_FLOAT(i, f) assert(sizeof f == sizeof i); std::memcpy(&f, &i, sizeof f)
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> dis(0);
 
 template <typename T>
 T clamp_helper(T a, T min, T max) {
@@ -67,7 +72,6 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl) {
   }
   return o;
 }
-
 // Tensor block_quantize_stochastic(Tensor a, Tensor r, int wl) {
 //   CHECK_INPUT(a);
 //   CHECK_INPUT(r);
@@ -112,7 +116,7 @@ unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding){
   unsigned int mask = (1 << (23-man_bits)) - 1;
   unsigned int rand_prob;
   if (rounding == rStochastic) {
-    rand_prob = ((unsigned int) rand()) & mask;
+    rand_prob = (dis(gen)) & mask;
   } else {
     rand_prob = 1 << (23-man_bits-1);
   }
@@ -152,7 +156,6 @@ Tensor block_quantize_nearest(Tensor a, int wl) {
   // get maximum number and base
   Tensor max_entry = at::max(at::abs(a));
   auto max_elem = max_entry.data<float>();
-  srand(time(NULL));
   block_quantize_helper(a_array, o_array, *max_elem, wl, size, rNearest);
   return o;
 }
@@ -167,7 +170,7 @@ Tensor block_quantize_stochastic(Tensor a, int wl) {
   // get maximum number and base
   Tensor max_entry = at::max(at::abs(a));
   auto max_elem = max_entry.data<float>();
-  srand(time(NULL));
+  // std::srand(time(0));
   block_quantize_helper(a_array, o_array, *max_elem, wl, size, rStochastic);
   return o;
 }

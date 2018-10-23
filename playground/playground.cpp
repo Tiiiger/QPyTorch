@@ -21,7 +21,7 @@ int float_experiment() {
   // stochastic rounding
   int wl = 3; // word length
   wl = wl - 1; // sign bit and virtual bit
-  srand(time(NULL));
+  srand(time(0));
   unsigned int r = ((unsigned int)rand()) << (9+wl) >> (9+wl);
   // unsigned int r = ((unsigned int) -1) >> 31 << 31 >> (9+wl);
   std::bitset<32> random_bits(r);
@@ -151,7 +151,7 @@ int block_float_experiment(float max_float, float to_quantize_float) {
     float quantized_float = 0;
     std::cout << "quantized float:             " << quantized_float << "\n";
   } else {
-    srand(time(NULL));
+    srand(time(0));
     unsigned int man_mask = ((1 << (23-(man-offset)))- 1);
     // unsigned int r = ((unsigned int)rand()) & man_mask;
     unsigned int r = 1 << (23-(man-offset)-1);
@@ -190,7 +190,7 @@ int block_float_experiment(float max_float, float to_quantize_float) {
   }
 }
 
-#define DEBUG 1
+#define DEBUG 0
 #define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
 #define BITS_TO_FLOAT(i, f) assert(sizeof f == sizeof i); std::memcpy(&f, &i, sizeof f)
 #define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
@@ -199,6 +199,7 @@ int block_float_experiment(float max_float, float to_quantize_float) {
 unsigned int round_bitwise_nearest(unsigned int target, int man_bits){
   int mask = (1 << (23-man_bits)) - 1;
   unsigned int rand_prob = rand() & mask;
+  std::cout << "r: " << rand_prob % 10 << "\n";
   unsigned int add_r = target+rand_prob;
   if (DEBUG) {
     std::bitset<32> add_r_string(add_r);
@@ -236,6 +237,7 @@ float block_quantize_offset_experiment(int wl, float max_elem, float target) {
     std::cout << "max num         :             " << max_rebase_string << "\n";
   }
 
+  srand(time(NULL));
   unsigned int quantized_bits = round_bitwise_nearest(target_bits, wl); // -1 sign, -1 virtual, +2 base
   if (DEBUG) {
     std::bitset<32> quantized_string(quantized_bits);
@@ -259,7 +261,10 @@ int main() {
   // block_quantize_offset_experiment(4, 1, 0.87);
   // block_quantize_offset_experiment(4, 2, 0.87);
   block_quantize_offset_experiment(4, 4, 0.87);
-  block_quantize_offset_experiment(4, 8, 0.87);
+  // block_quantize_offset_experiment(4, 8, 0.87);
   // aten_check_experiment();
+  // for (int i=0; i<100; i++){
+  //   std::cout << rand() % 10 << "\n";
+  // }
 
 }
