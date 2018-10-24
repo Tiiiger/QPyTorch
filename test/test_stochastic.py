@@ -17,27 +17,27 @@ class TestStochastic(unittest.TestCase):
     def test_stochastic_fixed(self):
         number = FixedPoint(wl=5, fl=4)
         a = torch.linspace(- 2 ** (number.wl-number.fl-1), 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl), steps=100, device='cuda')
-        quant = lambda x : fixed_point_quantize(x, forward_number=number, forward_rounding='stochastic')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
         self.assertTrue(((a-exp_a)**2).mean()<1e-8)
 
         number = FixedPoint(wl=5, fl=4)
         a = torch.linspace(- 2 ** (number.wl-number.fl-1), 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl), steps=100, device='cpu')
-        quant = lambda x : fixed_point_quantize(x, forward_number=number, forward_rounding='stochastic')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
         self.assertTrue(((a-exp_a)**2).mean()<1e-8)
 
     def test_stochastic_block(self):
         number = BlockFloatingPoint(wl=5)
         a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
-        quant = lambda x : block_quantize(x, forward_number=number, forward_rounding='stochastic')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
         diff = ((a-exp_a)**2).mean()
         self.assertTrue((diff < 1e-8))
 
         number = BlockFloatingPoint(wl=5)
         a = torch.linspace(-0.9, 0.9, steps=100, device='cpu')
-        quant = lambda x : block_quantize(x, forward_number=number, forward_rounding='stochastic')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
         diff = ((a-exp_a)**2).mean()
         self.assertTrue((diff < 1e-8))
@@ -45,7 +45,7 @@ class TestStochastic(unittest.TestCase):
     def test_stochastic_float(self):
         number = FloatingPoint(exp=3, man=5)
         a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
-        quant = lambda x : float_quantize(x, forward_number=number, forward_rounding='stochastic')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
         exp_a = self.calc_expectation(a, quant)
         self.assertTrue(((a-exp_a)**2).mean() < 1e-8)
 
