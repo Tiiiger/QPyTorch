@@ -114,6 +114,16 @@ for num in num_types:
     print("{}: {} rounding, {}".format(num, num_rounding,
           quant_summary(num_type, wl=num_wl, fl=num_fl, man=num_man, exp=num_exp)))
 
+def make_number(number, wl=-1, fl=-1, exp=-1, man=-1):
+    if number == "fixed":
+        return FixedPoint(wl, fl)
+    elif number == "block":
+        return BlockFloatingPoint(wl)
+    elif number == "float":
+        return FloatingPoint(exp, man)
+    else:
+        raise ValueError("Not supported number type")
+
 def make_quantizer(num):
     num_wl = getattr(args, "wl_{}".format(num))
     num_fl = getattr(args, "fl_{}".format(num))
@@ -121,13 +131,19 @@ def make_quantizer(num):
     num_rounding = getattr(args, "{}_rounding".format(num))
     num_man = getattr(args, "{}_man".format(num))
     num_exp = getattr(args, "{}_exp".format(num))
-    if num_type=="fixed":
-        return lambda x : fixed_point_quantize(x, forward_wl=num_wl, forward_fl=num_fl, forward_rounding=num_rounding)
-    elif num_type=="block":
-        return lambda x : block_quantize(x, forward_wl=num_wl, forward_rounding=num_rounding)
-    elif num_type=="float":
-        return lambda x : float_quantize(x, forward_man_bits=num_man, forward_exp_bits=num_exp,
-                                         forward_rounding=num_rounding)
+    forward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
+    backward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
+    # if num_type=="fixed":
+    #     return lambda x : fixed_point_quantize(x, forward_wl=num_wl, forward_fl=num_fl, forward_rounding=num_rounding)
+    # elif num_type=="block":
+    #     return lambda x : block_quantize(x, forward_wl=num_wl, forward_rounding=num_rounding)
+    # elif num_type=="float":
+    #     return lambda x : float_quantize(x, forward_man_bits=num_man, forward_exp_bits=num_exp,
+    #                                      forward_rounding=num_rounding)
+    return Quantizer(
+               forward_number, backward_number,
+               num_rounding, num_rounding
+           )
 
 weight_quantizer = make_quantizer("weight")
 grad_quantizer = make_quantizer("grad")
@@ -157,14 +173,30 @@ model.cuda()
 if args.auto_low:
     lower(model,
           layer_types=["conv", "activation"],
-          wl_activate=args.wl_activate,
-          wl_error=args.wl_error,
-          fl_activate=args.fl_activate,
-          fl_error=args.fl_error,
-          activate_rounding=args.activate_rounding,
-          error_rounding=args.error_rounding,
-          activate_type=args.activate_type,
-          error_type=args.error_type
+          forward_number=make_number(
+                             args.activate_type, 
+                             wl=args.wl_activate, 
+                             fl=args.fl_activate, 
+                             man=args.activate_man,
+                             exp=args.activate_exp,
+                         ),
+          backward_number=make_number(
+                              args.error_type,
+                              wl=args.wl_error,
+                              fl=args.fl_error,
+                              man=args.error_man,
+                              exp=args.error_exp,
+                          ),
+          # wl_activate=args.wl_activate,
+          # wl_error=args.wl_error,
+          # fl_activate=args.fl_activate,
+          # fl_error=args.fl_error,
+          # activate_rounding=args.activate_rounding,
+          # error_rounding=args.error_rounding,
+          # activate_type=args.activate_type,
+          # error_type=args.error_type
+          forward_rounding=args.activate_type,
+          backward_rounding=args.error_type
     )
 if args.half:
     model.half()
