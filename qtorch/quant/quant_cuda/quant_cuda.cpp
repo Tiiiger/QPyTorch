@@ -14,7 +14,7 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl) {
 
 Tensor block_quantize_nearest(Tensor a, int wl) {
   CHECK_INPUT(a);
-  return block_quantize_nearest_aten_cuda(a, wl);
+  return block_quantize_nearest_cuda(a, wl);
 }
 
 Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
@@ -28,10 +28,9 @@ Tensor fixed_point_quantize_stochastic(Tensor a, Tensor r, int wl, int fl) {
   return fixed_point_quantize_stochastic_cuda(a, r, wl, fl);
 }
 
-Tensor block_quantize_stochastic(Tensor a, Tensor r, int wl) {
+Tensor block_quantize_stochastic(Tensor a, int wl) {
   CHECK_INPUT(a);
-  CHECK_INPUT(r);
-  return block_quantize_stochastic_aten_cuda(a, r, wl);
+  return block_quantize_stochastic_cuda(a, wl);
 }
 
 Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
