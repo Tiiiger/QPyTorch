@@ -72,13 +72,9 @@ def _get_apply_lower_func(quant, layer_types=[]):
     return _insert_LP_layer
 def lower(model,
           layer_types=[],
-          forward_number, backward_number,
-          forward_rounding, backward_rounding):
-          # activate_rounding=None,
-          # error_rounding=None,
-          # activate_type=None,
-          # error_type=None):
-    quant = Quantizer(forward_number, backward_number,
+          forward_number=None, backward_number=None,
+          forward_rounding="stochastic", backward_rounding="stochastic"):
+    quant = lambda : Quantizer(forward_number, backward_number,
                       forward_rounding, backward_rounding)
     lower_func = _get_apply_lower_func(quant, layer_types=layer_types)
     model.apply(lower_func)

@@ -27,7 +27,7 @@ T clamp_helper(T a, T min, T max) {
 }
 
 float round(float a, float r, int sigma) {
-  a = ldexp(a, -sigma); 
+  a = ldexp(a, -sigma);
   a = floor(a+r);
   a = ldexp(a, sigma);
   return a;
@@ -72,43 +72,6 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl) {
   }
   return o;
 }
-// Tensor block_quantize_stochastic(Tensor a, Tensor r, int wl) {
-//   CHECK_INPUT(a);
-//   CHECK_INPUT(r);
-//   auto a_array = a.data<float>();
-//   auto r_array = r.data<float>();
-//   Tensor o = zeros_like(a);
-//   auto o_array = o.data<float>();
-//   int64_t size = a.numel();
-
-//   Tensor max_entry = at::max(at::abs(a));
-//   // auto max_entry = max_tensor.data<float>();
-//   auto max_elem = max_entry.data<float>();
-//   int exponent = ((int) extract_exponent(max_elem));
-//   int sigma = exponent-(wl-1);
-//   for (int64_t i=0; i < size; i++) {
-//     o_array[i] = round(a_array[i], r_array[i], sigma);
-//   }
-//   return o;
-// }
-
-// Tensor block_quantize_nearest(Tensor a, int wl) {
-//   CHECK_INPUT(a);
-//   auto a_array = a.data<float>();
-//   Tensor o = zeros_like(a);
-//   auto o_array = o.data<float>();
-//   int64_t size = a.numel();
-
-//   Tensor max_entry = at::max(at::abs(a));
-//   // auto max_entry = max_tensor.data<float>();
-//   auto max_elem = max_entry.data<float>();
-//   int exponent = ((int) extract_exponent(max_elem));
-//   int sigma = exponent-(wl-1);
-//   for (int64_t i=0; i < size; i++) {
-//     o_array[i] = round(a_array[i], 0.5, sigma);
-//   }
-//   return o;
-// }
 
 enum Mode {rNearest, rStochastic};
 

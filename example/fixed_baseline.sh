@@ -1,0 +1,30 @@
+python train.py --dataset CIFAR10 \
+       --data_path ./data \
+       --model VGG16 \
+       --epochs=200 \
+       --lr_init=0.05 \
+       --wd=5e-4 \
+       --name example \
+       --wl-weight 20 \
+       --wl-grad 20 \
+       --wl-momentum 20 \
+       --wl-activate 20 \
+       --wl-error 20 \
+       --fl-weight 16 \
+       --fl-grad 16 \
+       --fl-momentum 16 \
+       --fl-activate 16 \
+       --fl-error 16 \
+       --seed 100 \
+       --batch_size 128  \
+       --weight-rounding nearest \
+       --activate-rounding nearest \
+       --grad-rounding nearest \
+       --error-rounding nearest \
+       --momentum-rounding nearest \
+       --weight-type fixed \
+       --activate-type fixed \
+       --grad-type fixed \
+       --error-type fixed \
+       --momentum-type fixed \
+       --auto_low;

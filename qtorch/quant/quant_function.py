@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-__all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', 'R', "quantize"]
+__all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
 R = torch.cuda.FloatTensor(int(1e8)).uniform_()
 
 def assert_wl_fl(wl, fl, stage):
@@ -17,7 +17,7 @@ def make_r(x, random=R):
     size = x.numel()
     start = np.random.randint(0, random.size(0)-size-1)
     r = random[start:start+size]
-    r = r.view_as(x)
+    r = r.view_as(x).to(x.device)
     return r
 
 class FixedPointRounding(torch.autograd.Function):
@@ -47,7 +47,7 @@ class FixedPointRounding(torch.autograd.Function):
         if forward_rounding=="nearest":
             out = quant_module.fixed_point_quantize_nearest(x, forward_number.wl, forward_number.fl)
         elif forward_rounding=="stochastic":
-            r = make_r(x).to(x.device)
+            r = make_r(x)
             out = quant_module.fixed_point_quantize_stochastic(x, r, forward_number.wl, forward_number.fl)
         return out
 
@@ -67,7 +67,7 @@ class FixedPointRounding(torch.autograd.Function):
                                                                            self.backward_number.wl,
                                                                            self.backward_number.fl)
                 elif self.backward_rounding=="stochastic":
-                    r = make_r(x).to(x.device)
+                    r = make_r(x)
                     grad_input = quant_module.fixed_point_quantize_stochastic(grad_output, r,
                                                                               self.backward_number.wl,
                                                                               self.backward_number.fl)
@@ -129,12 +129,10 @@ class FloatRounding(torch.autograd.Function):
                 random=R):
         for num in [forward_number, backward_number]:
             if num != None: assert isinstance(num, FloatingPoint), "Number must be FloatingPoint"
-        
         if x.is_cuda:
             quant_module = quant_cuda
         else:
             quant_module = quant_cpu
-        
         self.backward_number = backward_number
         self.backward_rounding = backward_rounding
 
@@ -172,13 +170,42 @@ class FloatRounding(torch.autograd.Function):
 
         return grad_input, None, None, None, None, None, None
 
-def quantize(forward_number=None, backward_number=None,
+def quantizer(forward_number=None, backward_number=None,
              forward_rounding="stochastic", backward_rounding="stochastic"):
     for rounding in [forward_rounding, backward_rounding]:
         assert rounding in ["stochastic", "nearest"], "invalid rounding type {:s}".format(rounding)
     for num in [forward_number, backward_number]:
         if num != None: assert isinstance(num, Number)
 
+    if forward_rounding=="nearest":
+        if type(forward_number)==BlockFloatingPoint:
+            forward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(x, forward_number.wl)
+        elif type(forward_number)==FixedPoint:
+            forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(x, forward_number.wl, forward_number.fl)
+        elif type(forward_number)==FloatingPoint:
+            forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(x, forward_number.man, forward_number.exp)
+    elif forward_rounding=="stochastic":
+        if type(forward_number)==BlockFloatingPoint:
+            forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(x, forward_number.wl)
+        elif type(forward_number)==FixedPoint:
+            forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(x, make_r(x), forward_number.wl, forward_number.fl)
+        elif type(forward_number)==FloatingPoint:
+            forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(x, forward_number.man, forward_number.exp)
+
+    if backward_rounding=="nearest":
+        if type(backward_number)==BlockFloatingPoint:
+            backward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(x, backward_number.wl)
+        elif type(backward_number)==FixedPoint:
+            backward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(x, backward_number.wl, backward_number.fl)
+        elif type(backward_number)==FloatingPoint:
+            backward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(x, backward_number.man, backward_number.exp)
+    elif backward_rounding=="stochastic":
+        if type(backward_number)==BlockFloatingPoint:
+            backward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(x, backward_number.wl)
+        elif type(backward_number)==FixedPoint:
+            backward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(x, make_r(x), backward_number.wl, backward_number.fl)
+        elif type(backward_number)==FloatingPoint:
+            backward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(x, backward_number.man, backward_number.exp)
 
     class Rounding(torch.autograd.Function):
         @staticmethod
@@ -190,22 +217,7 @@ def quantize(forward_number=None, backward_number=None,
 
             if forward_number==None: return x
 
-            if forward_rounding=="nearest":
-                if type(forward_number)==number.BlockFloatingPoint:
-                    out = quant_module.block_quantize_nearest(x, forward_number.wl)
-                elif type(forward_number)==number.FixedPoint:
-                    out = quant_module.fixed_point_quantize_nearest(x, forward_number.wl, forward_number.fl)
-                elif type(forward_number)==number.FloatingPoint:
-                    out = quant_module.float_quantize_nearest(x, forward_number.man, forward_number.exp)
-            elif forward_rounding=="stochastic":
-                if type(forward_number)==number.BlockFloatingPoint:
-                    r = make_r(x)
-                    out = quant_module.block_quantize_stochastic(x, r, forward_number.wl)
-                elif type(forward_number)==number.FixedPoint:
-                    r = make_r(x)
-                    out = quant_module.fixed_point_quantize_stochastic(x, r, forward_number.wl, forward_number.fl)
-                elif type(forward_number)==number.FloatingPoint:
-                    out = quant_module.float_quantize_stochastic(x, forward_number.man, forward_number.exp)
+            out = forward_quant(x, quant_module)
 
             return out
 
@@ -220,22 +232,7 @@ def quantize(forward_number=None, backward_number=None,
                 if backward_number == None:
                     grad_input = grad_output
                 else:
-                    if backward_rounding=="nearest":
-                        if type(backward_number)==number.BlockFloatingPoint:
-                            grad_input = quant_module.block_quantize_nearest(grad_output, backward_number.wl)
-                        elif type(backward_number)==number.FixedPoint:
-                            grad_input = quant_module.fixed_point_quantize_nearest(grad_output, backward_number.wl, backward_number.fl)
-                        elif type(backward_number)==number.FloatingPoint:
-                            grad_input = quant_module.float_quantize_nearest(grad_output, backward_number.man, backward_number.exp)
-                    elif backward_rounding=="stochastic":
-                        if type(backward_number)==number.BlockFloatingPoint:
-                            r = make_r(grad_output)
-                            grad_input = quant_module.block_quantize_stochastic(grad_output, r, backward_number.wl)
-                        elif type(backward_number)==number.FixedPoint:
-                            r = make_r(grad_output)
-                            grad_input = quant_module.fixed_point_quantize_stochastic(grad_output, r, backward_number.wl, backward_number.fl)
-                        elif type(backward_number)==number.FloatingPoint:
-                            grad_input = quant_module.float_quantize_stochastic(grad_output, backward_number.man, backward_number.exp)
+                    grad_input = backward_quant(grad_output, quant_module)
             else:
                 grad_input = None
 

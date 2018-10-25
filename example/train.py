@@ -15,6 +15,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
 from qtorch.auto_low import lower
 from qtorch.optim import SGDLP
+from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
 
@@ -133,17 +134,9 @@ def make_quantizer(num):
     num_exp = getattr(args, "{}_exp".format(num))
     forward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
     backward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
-    # if num_type=="fixed":
-    #     return lambda x : fixed_point_quantize(x, forward_wl=num_wl, forward_fl=num_fl, forward_rounding=num_rounding)
-    # elif num_type=="block":
-    #     return lambda x : block_quantize(x, forward_wl=num_wl, forward_rounding=num_rounding)
-    # elif num_type=="float":
-    #     return lambda x : float_quantize(x, forward_man_bits=num_man, forward_exp_bits=num_exp,
-    #                                      forward_rounding=num_rounding)
     return Quantizer(
                forward_number, backward_number,
-               num_rounding, num_rounding
-           )
+               num_rounding, num_rounding)
 
 weight_quantizer = make_quantizer("weight")
 grad_quantizer = make_quantizer("grad")
@@ -174,9 +167,9 @@ if args.auto_low:
     lower(model,
           layer_types=["conv", "activation"],
           forward_number=make_number(
-                             args.activate_type, 
-                             wl=args.wl_activate, 
-                             fl=args.fl_activate, 
+                             args.activate_type,
+                             wl=args.wl_activate,
+                             fl=args.fl_activate,
                              man=args.activate_man,
                              exp=args.activate_exp,
                          ),
@@ -187,16 +180,8 @@ if args.auto_low:
                               man=args.error_man,
                               exp=args.error_exp,
                           ),
-          # wl_activate=args.wl_activate,
-          # wl_error=args.wl_error,
-          # fl_activate=args.fl_activate,
-          # fl_error=args.fl_error,
-          # activate_rounding=args.activate_rounding,
-          # error_rounding=args.error_rounding,
-          # activate_type=args.activate_type,
-          # error_type=args.error_type
-          forward_rounding=args.activate_type,
-          backward_rounding=args.error_type
+          forward_rounding=args.activate_rounding,
+          backward_rounding=args.error_rounding
     )
 if args.half:
     model.half()
