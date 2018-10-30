@@ -193,7 +193,6 @@ __global__ void block_kernel_nearest(float* __restrict__ a,
 
 Tensor block_quantize_nearest_cuda(Tensor a, int wl) {
   auto o = at::zeros_like(a);
-  auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
   int64_t size = a.numel();
 
   Tensor max_entry = at::max(at::abs(a));
@@ -201,6 +200,70 @@ Tensor block_quantize_nearest_cuda(Tensor a, int wl) {
   int blockNums = (size + blockSize - 1) / blockSize;
 
   block_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
+                                                 o.data<float>(),
+                                                 size,
+                                                 max_entry.data<float>(),
+                                                 wl);
+  return o;
+}
+
+// quantize a float into a floating point with [exp_bits] exponent and
+// [man_bits] mantissa
+__global__ void block_kernel_sim_stochastic(float* __restrict__ a,
+                                            float* __restrict__ r,
+                                            float* o, int size,
+                                            float* max_entry,
+                                            int wl) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    int exponent = ((int) extract_exponent(max_entry));
+    int sigma = exponent-(wl-1);
+    o[index] = round(a[index], r[index], sigma);
+  }
+}
+
+Tensor block_quantize_sim_stochastic_cuda(Tensor a, int wl) {
+  auto o = at::zeros_like(a);
+  auto rand_probs = rand_like(a);
+  int64_t size = a.numel();
+
+  Tensor max_entry = at::max(at::abs(a));
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  block_kernel_sim_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
+                                                        rand_probs.data<float>(),
+                                                        o.data<float>(),
+                                                        size,
+                                                        max_entry.data<float>(),
+                                                        wl);
+  return o;
+}
+
+// quantize a float into a floating point with [exp_bits] exponent and
+// [man_bits] mantissa
+__global__ void block_kernel_sim_nearest(float* __restrict__ a,
+                                         float* o, int size,
+                                         float* max_entry,
+                                         int wl) {
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < size) {
+    int exponent = ((int) extract_exponent(max_entry));
+    int sigma = exponent-(wl-1);
+    o[index] = round(a[index], 0.5, sigma);
+  }
+}
+
+Tensor block_quantize_sim_nearest_cuda(Tensor a, int wl) {
+  auto o = at::zeros_like(a);
+  auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
+  int64_t size = a.numel();
+
+  Tensor max_entry = at::max(at::abs(a));
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  block_kernel_sim_nearest<<<blockNums, blockSize>>>(a.data<float>(),
                                                  o.data<float>(),
                                                  size,
                                                  max_entry.data<float>(),
@@ -240,9 +303,10 @@ Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits) {
   return o;
 }
 
-Tensor fixed_point_quantize_stochastic_cuda(Tensor a, Tensor r, int wl, int fl) {
+Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl) {
   // use external random number right now
   auto o = at::zeros_like(a);
+  auto rand_probs = rand_like(a);
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min = -ldexp(1.0, wl-fl-1);
@@ -251,7 +315,7 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, Tensor r, int wl, int fl) 
   int blockNums = (size + blockSize - 1) / blockSize;
 
   fixed_point_quantize_copy_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                                        r.data<float>(),
+                                                                        rand_probs.data<float>(),
                                                                         o.data<float>(),
                                                                         size,
                                                                         sigma,

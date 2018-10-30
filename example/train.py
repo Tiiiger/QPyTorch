@@ -165,7 +165,7 @@ model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwa
 model.cuda()
 if args.auto_low:
     lower(model,
-          layer_types=["conv", "activation"],
+          layer_types=["activation"],
           forward_number=make_number(
                              args.activate_type,
                              wl=args.wl_activate,

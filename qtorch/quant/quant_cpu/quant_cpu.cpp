@@ -138,13 +138,57 @@ Tensor block_quantize_stochastic(Tensor a, int wl) {
   return o;
 }
 
+unsigned int clip_exponent(unsigned int target, int exp_bits) {
+  return target;
+}
+
+//TODO: DRAFT, NEED TO SLEEP
+Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
+  // use external random number right now
+  auto a_array = a.data<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data<float>();
+  int size = a.numel();
+
+  for (int64_t i=0; i < size; i++) {
+    man_bits = man_bits-1;
+    unsigned int target;
+    FLOAT_TO_BITS(a_array[i], target);
+    round_bitwise(target, man_bits, rStochastic);
+    target = clip_exponent(target, exp_bits);
+    float quantized;
+    BITS_TO_FLOAT(target, quantized);
+    o_array[i] = quantized;
+  }
+  return o;
+}
+
+Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
+  auto a_array = a.data<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data<float>();
+  int size = a.numel();
+
+  for (int64_t i=0; i < size; i++) {
+    man_bits = man_bits-1;
+    unsigned int target;
+    FLOAT_TO_BITS(a_array[i], target);
+    round_bitwise(target, man_bits, rNearest);
+    target = clip_exponent(target, exp_bits);
+    float quantized;
+    BITS_TO_FLOAT(target, quantized);
+    o_array[i] = quantized;
+  }
+  return o;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("fixed_point_quantize_stochastic", &fixed_point_quantize_stochastic, "Fixed Point Number Stochastic Quantization (CPU)");
   m.def("block_quantize_stochastic", &block_quantize_stochastic, "Block Floating Point Number Stochastic Quantization (CPU)");
-  //m.def("float_quantize_stochastic", &float_quantize_stochastic, "Low-Bitwidth Floating Point Number Stochastic Quantization (CUDA)");
+  m.def("float_quantize_stochastic", &float_quantize_stochastic, "Low-Bitwidth Floating Point Number Stochastic Quantization (CUDA)");
   m.def("fixed_point_quantize_nearest", &fixed_point_quantize_nearest, "Fixed Point Number Nearest Neighbor Quantization (CPU)");
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CPU)");
-  // m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
+  m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
 }
 
 
