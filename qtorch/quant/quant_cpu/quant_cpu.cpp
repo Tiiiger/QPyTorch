@@ -8,8 +8,7 @@ using namespace at;
 
 #define CHECK_CONTIGUOUS(x) assert(x.is_contiguous())
 #define CHECK_DEVICE(x) assert(x.device() == kCPU)
-// #define CHECK_INPUT(x) (CHECK_CONTIGUOUS(x) & CHECK_DEVICE(x))
-#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_DEVICE(x)
 #define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
 #define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
 #define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
@@ -39,9 +38,9 @@ unsigned int extract_exponent(float *a) {
   return temp-127+1; // exponent offset and virtual bit
 }
 
-Tensor fixed_point_quantize_stochastic(Tensor a, Tensor r, int wl, int fl) {
+Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl) {
   CHECK_INPUT(a);
-  CHECK_INPUT(r);
+  auto r = rand_like(a);
   auto a_array = a.data<float>();
   auto r_array = r.data<float>();
   Tensor o = zeros_like(a);

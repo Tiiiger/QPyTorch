@@ -49,5 +49,11 @@ class TestStochastic(unittest.TestCase):
         exp_a = self.calc_expectation(a, quant)
         self.assertTrue(((a-exp_a)**2).mean() < 1e-8)
 
+        number = FloatingPoint(exp=3, man=5)
+        a = torch.linspace(-0.9, 0.9, steps=100, device='cpu')
+        quant = quantizer(forward_number=number, forward_rounding='stochastic')
+        exp_a = self.calc_expectation(a, quant)
+        self.assertTrue(((a-exp_a)**2).mean() < 1e-8)
+
 if __name__ == "__main__":
     unittest.main()
