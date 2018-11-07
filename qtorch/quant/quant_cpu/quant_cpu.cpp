@@ -1,8 +1,7 @@
 #include <torch/torch.h>
 #include <assert.h>
-// #include <cstdlib>
-// #include <time.h>
 #include <random>
+#include <tuple>
 
 using namespace at;
 
@@ -25,6 +24,19 @@ T clamp_helper(T a, T min, T max) {
   else return a;
 }
 
+template <typename T>
+T clamp_mask_helper(T a, T min, T max, unsigned int* mask) {
+  if (a > max) {
+    *mask = 1;
+    return max;
+  }
+  else if (a < min) {
+    *mask = 1;
+    return min;
+  }
+  else return a;
+}
+
 float round(float a, float r, int sigma) {
   a = ldexp(a, -sigma);
   a = floor(a+r);
@@ -38,7 +50,27 @@ unsigned int extract_exponent(float *a) {
   return temp-127+1; // exponent offset and virtual bit
 }
 
-Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl) {
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl) {
+  CHECK_INPUT(a);
+  auto r = rand_like(a);
+  auto a_array = a.data<float>();
+  auto r_array = r.data<float>();
+  Tensor o = zeros_like(a);
+  auto o_array = o.data<float>();
+  auto m = zeros_like(a, kByte);
+  auto m_array = m.data<unsigned int>();
+  int64_t size = a.numel();
+  int sigma = -fl;
+  float t_min = -ldexp(1.0, wl-fl-1);
+  float t_max = -t_min-ldexp(1.0, sigma);
+  for (int64_t i=0; i < size; i++) {
+    o_array[i] = round(a_array[i], r_array[i], sigma);
+    o_array[i] = clamp_mask_helper(o_array[i], t_min, t_max, m_array+i);
+  }
+  return std::make_tuple(o, m);
+}
+
+Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp) {
   CHECK_INPUT(a);
   auto r = rand_like(a);
   auto a_array = a.data<float>();
@@ -51,7 +83,9 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl) {
   float t_max = -t_min-ldexp(1.0, sigma);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
-    o_array[i] = clamp_helper(o_array[i], t_min, t_max);
+    if (clamp) {
+      o_array[i] = clamp_helper(o_array[i], t_min, t_max);
+    }
   }
   return o;
 }
@@ -182,6 +216,7 @@ Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("fixed_point_quantize_stochastic_mask", &fixed_point_quantize_stochastic_mask, "Fixed Point Number Stochastic Quantization with Mask (CPU)");
   m.def("fixed_point_quantize_stochastic", &fixed_point_quantize_stochastic, "Fixed Point Number Stochastic Quantization (CPU)");
   m.def("block_quantize_stochastic", &block_quantize_stochastic, "Block Floating Point Number Stochastic Quantization (CPU)");
   m.def("float_quantize_stochastic", &float_quantize_stochastic, "Low-Bitwidth Floating Point Number Stochastic Quantization (CUDA)");
