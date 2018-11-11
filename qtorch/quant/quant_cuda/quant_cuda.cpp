@@ -1,5 +1,5 @@
 #include <torch/torch.h>
-#include "quant.h"
+#include "quant_cuda.h"
 
 using namespace at;
 

@@ -6,7 +6,7 @@ setup(
     ext_modules=[
         CUDAExtension('quant_cuda', [
             'quant_cuda.cpp',
-            'quant_kernel.cu'
+            'quant.cu'
         ])
     ],
     cmdclass={
