@@ -39,6 +39,13 @@ T clamp_mask_helper(T a, T min, T max, uint8_t* mask) {
   else return a;
 }
 
+void fixed_min_max(int wl, int fl, bool symmetric, float* t_min, float* t_max) {
+  int sigma = -fl;
+  *t_min = -ldexp(1.0, wl-fl-1);
+  *t_max = -*t_min-ldexp(1.0, sigma);
+  if (symmetric) *t_min = *t_min+ldexp(1.0, sigma);
+}
+
 float round(float a, float r, int sigma) {
   a = ldexp(a, -sigma);
   a = floor(a+r);
@@ -52,7 +59,7 @@ unsigned int extract_exponent(float *a) {
   return temp-127+1; // exponent offset and virtual bit
 }
 
-std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl) {
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
   CHECK_INPUT(a);
   auto r = rand_like(a);
   auto a_array = a.data<float>();
@@ -63,8 +70,8 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
   auto m_array = m.data<uint8_t>();
   int64_t size = a.numel();
   int sigma = -fl;
-  float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-ldexp(1.0, sigma);
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
     o_array[i] = clamp_mask_helper<float>(o_array[i], t_min, t_max, m_array+i);
@@ -72,7 +79,7 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
   return std::make_tuple(o, m);
 }
 
-std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl) {
+std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric) {
   CHECK_INPUT(a);
   auto a_array = a.data<float>();
   auto o = zeros_like(a);
@@ -81,8 +88,8 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, i
   auto m_array = m.data<uint8_t>();
   int64_t size = a.numel();
   int sigma = -fl;
-  float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-ldexp(1.0, sigma);
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], 0.5, sigma);
     o_array[i] = clamp_mask_helper<float>(o_array[i], t_min, t_max, m_array+i);
@@ -90,7 +97,7 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, i
   return std::make_tuple(o, m);
 }
 
-Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp) {
+Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp, bool symmetric) {
   CHECK_INPUT(a);
   auto r = rand_like(a);
   auto a_array = a.data<float>();
@@ -99,8 +106,8 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp) {
   auto o_array = o.data<float>();
   int64_t size = a.numel();
   int sigma = -fl;
-  float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-ldexp(1.0, sigma);
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
     if (clamp) {
@@ -110,18 +117,20 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp) {
   return o;
 }
 
-Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl) {
+Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp, bool symmetric) {
   CHECK_INPUT(a);
   auto a_array = a.data<float>();
   Tensor o = zeros_like(a);
   auto o_array = o.data<float>();
   int64_t size = a.numel();
   int sigma = -fl;
-  float t_min = -ldexp(1.0, wl-fl-1);
-  float t_max = -t_min-sigma;
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i=0; i < size; i++) {
     o_array[i] = round(a_array[i], 0.5, sigma);
-    o_array[i] = clamp_helper(o_array[i], t_min, t_max);
+    if (clamp) {
+      o_array[i] = clamp_helper(o_array[i], t_min, t_max);
+    }
   }
   return o;
 }
