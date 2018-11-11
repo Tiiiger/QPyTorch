@@ -3,6 +3,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <climits>
+#include <stdint.h>
+#include <tuple>
 #include <ATen/ATen.h>
 #include "quant_cuda.h"
 #include "quant_kernel.h"
@@ -117,7 +119,7 @@ void fixed_min_max(int wl, int fl, bool symmetric, float* t_min, float* t_max) {
   if (symmetric) *t_min = *t_min+ldexp(1.0, sigma);
 }
 
-Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool clamp, bool symmetric) {
+Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool use_clamp, bool symmetric) {
   // use external random number right now
   auto o = at::zeros_like(a);
   auto rand_probs = rand_like(a);
@@ -133,13 +135,13 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool clamp
                                                                    o.data<float>(),
                                                                    size,
                                                                    sigma,
-                                                                   clamp,
+                                                                   use_clamp,
                                                                    t_min,
                                                                    t_max);
   return o;
 }
 
-Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool clamp, bool symmetric) {
+Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool use_clamp, bool symmetric) {
   // use external random number right now
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
@@ -153,8 +155,52 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool clamp, b
                                                                 o.data<float>(),
                                                                 size,
                                                                 sigma,
-                                                                clamp,
+                                                                use_clamp,
                                                                 t_min,
                                                                 t_max);
   return o;
+}
+
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl, bool symmetric) {
+  // use external random number right now
+  auto o = zeros_like(a);
+  auto rand_probs = rand_like(a);
+  auto m = zeros_like(a, a.options().dtype(kByte));
+  int64_t size = a.numel();
+  int sigma = -fl;
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  fixed_point_quantize_kernel_mask_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                        rand_probs.data<float>(),
+                                                                        o.data<float>(),
+                                                                        m.data<uint8_t>(),
+                                                                        size,
+                                                                        sigma,
+                                                                        t_min,
+                                                                        t_max);
+  return std::make_tuple(o, m);
+}
+
+std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl, bool symmetric) {
+  // use external random number right now
+  auto o = at::zeros_like(a);
+  auto m = zeros_like(a, a.options().dtype(kByte));
+  int64_t size = a.numel();
+  int sigma = -fl;
+  float t_min, t_max;
+  fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  fixed_point_quantize_kernel_mask_nearest<<<blockNums, blockSize>>>(a.data<float>(),
+                                                                     o.data<float>(),
+                                                                     m.data<uint8_t>(),
+                                                                     size,
+                                                                     sigma,
+                                                                     t_min,
+                                                                     t_max);
+  return std::make_tuple(o, m);
 }

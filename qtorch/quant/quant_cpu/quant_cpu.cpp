@@ -251,5 +251,3 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CPU)");
   m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
 }
-
-
