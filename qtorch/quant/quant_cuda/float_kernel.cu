@@ -1,5 +1,5 @@
 #include "quant_kernel.h"
-#include "bit_helper.h"
+#include "bit_helper.cu"
 
 // quantize a float into a floating point with [exp_bits] exponent and
 // [man_bits] mantissa
