@@ -7,14 +7,14 @@ using namespace at;
  * and fractional bits [fl].
  * Stochastic Rounding.
  **/
-Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl);
+Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool clamp, bool symmetric);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
  * and fractional bits [fl]
  * Nearest Rounding.
  **/
-Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl);
+Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool clamp, bool symmetric);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
