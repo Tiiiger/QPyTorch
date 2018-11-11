@@ -7,9 +7,9 @@ using namespace at;
 
 enum Mode {rNearest, rStochastic};
 
-#define CHECK_CONTIGUOUS(x) assert(x.is_contiguous())
-#define CHECK_DEVICE(x) assert(x.device() == kCPU)
-#define CHECK_INPUT(x) CHECK_DEVICE(x)
+#define CHECK_CONTIGUOUS(x) AT_CHECK(x.is_contiguous(), #x " must be contiguous")
+#define CHECK_CPU(x) AT_CHECK(!x.type().is_cuda(), #x " must be a CPU tensor")
+#define CHECK_INPUT(x) CHECK_CPU(x); CHECK_CONTIGUOUS(x);
 #define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
 #define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
 #define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
