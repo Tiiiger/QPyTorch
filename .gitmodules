@@ -1,0 +1,3 @@
+[submodule "WAGE.pytorch"]
+	path = WAGE.pytorch
+	url = https://github.com/Tiiiger/WAGE.pytorch.git
