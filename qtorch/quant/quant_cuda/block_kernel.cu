@@ -69,6 +69,6 @@ __global__ void block_kernel_sim_nearest(float* __restrict__ a,
   if (index < size) {
     int exponent = ((int) extract_exponent(max_entry));
     int sigma = exponent-(wl-1);
-    o[index] = round(a[index], 0.5, sigma);
+    o[index] = nearest_round(a[index], sigma);
   }
 }

@@ -14,12 +14,12 @@ __device__ __forceinline__ T clamp_mask_helper(T a, T min, T max, uint8_t* mask)
   if (a > max) {
     *mask = 1;
     return max;
-  }
-  else if (a < min) {
+  } else if (a < min) {
     *mask = 1;
     return min;
   }
-  else return a;
+  *mask = 0;
+  return a;
 }
 
 // quantize an array of real numbers into fixed point with word length [wl] and [fl] fractional bits
@@ -46,7 +46,7 @@ __global__ void fixed_point_quantize_kernel_nearest(float* __restrict__ a,
                                                     float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    o[index] = round(a[index], 0.5, sigma);
+    o[index] = nearest_round(a[index], sigma);
     if (use_clamp) {
       o[index] = clamp_helper(o[index], t_min, t_max);
     }
@@ -71,7 +71,7 @@ __global__ void fixed_point_quantize_kernel_mask_nearest(float* __restrict__ a,
                                                          float t_min, float t_max) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    o[index] = round(a[index], 0.5, sigma);
+    o[index] = nearest_round(a[index], sigma);
     o[index] = clamp_mask_helper(o[index], t_min, t_max, m+index);
   }
 }
