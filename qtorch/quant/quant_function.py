@@ -69,7 +69,8 @@ def get_module(x):
 
 def quantizer(forward_number=None, backward_number=None,
               forward_rounding="stochastic", backward_rounding="stochastic",
-              clamping_grad_zero=False):
+              clamping_grad_zero=False, backward_hooks=[]):
+
     for rounding in [forward_rounding, backward_rounding]:
         assert rounding in ["stochastic", "nearest"], "invalid rounding type {:s}".format(rounding)
     for num in [forward_number, backward_number]:
@@ -94,8 +95,8 @@ def quantizer(forward_number=None, backward_number=None,
             elif type(forward_number)==FloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(x, forward_number.man, forward_number.exp)
     else:
-        if type(forward_number)==FixedPoint:
-            assert forward_number.clamp == True, "must use clamping if zeroing out clamped gradient"
+        if type(forward_number)==FixedPoint or forward_number==None:
+            assert forward_number==None or forward_number.clamp == True, "must use clamping if zeroing out clamped gradient"
             if forward_rounding=="nearest":
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest_mask(x, forward_number.wl, forward_number.fl, forward_number.symmetric)
             elif forward_rounding=="stochastic":
@@ -148,6 +149,7 @@ def quantizer(forward_number=None, backward_number=None,
             @staticmethod
             def forward(self, x):
                 if forward_number==None:
+                    self.mask = torch.zeros_like(x).byte()
                     return x
                 else:
                     quant_module = get_module(x)
@@ -163,7 +165,10 @@ def quantizer(forward_number=None, backward_number=None,
                         grad_input = grad_output
                     else:
                         quant_module = get_module(grad_output)
-                        grad_input = backward_quant(grad_output.contiguous().masked_fill_(self.mask, 0), quant_module)
+                        # grad_output = grad_output.contiguous().masked_fill_(self.mask, 0)
+                        for f in backward_hooks:
+                            grad_output = f(grad_output)
+                        grad_input = backward_quant(grad_output.contiguous(), quant_module).masked_fill(self.mask, 0)
                 else:
                     grad_input = None
 
