@@ -8,11 +8,15 @@ class Number():
         raise NotImplemented
 
 class FixedPoint(Number):
-    def __init__(self, wl, fl):
+    def __init__(self, wl, fl, clamp=True, symmetric=False):
         assert wl > 0, "invalid bits for word length: {}".format(wl)
         assert fl > 0, "invalid bits for fractional length: {}".format(fl)
+        assert type(symmetric) == bool, "invalid type for clamping choice: {}".format(type(clamp))
+        assert type(symmetric) == bool, "invalid type for symmetric: {}".format(type(symmetric))
         self.wl = wl
         self.fl = fl
+        self.clamp = clamp
+        self.symmetric = symmetric
 
     def __str__(self):
         return "FixedPoint Number with wl={:d}, fl={:d}".format(self.wl, self.fl)

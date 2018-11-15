@@ -15,6 +15,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
 from qtorch.auto_low import lower
 from qtorch.optim import SGDLP
+from qtorch.real_acc import ModelParamAccumulator
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
@@ -187,6 +188,7 @@ if args.half:
     model.half()
 print('SGD training')
 
+model = ModelParamAccumulator(model, weight_quantizer=lambda x : x.sign())
 
 def schedule(epoch, lr_schedule):
     if lr_schedule == "wilson":
@@ -231,16 +233,57 @@ def log_result(writer, name, res, step):
     writer.add_scalar("{}/err_perc".format(name), 100. - res['accuracy'], step)
     writer.add_scalar("{}/time_pass".format(name), res['time_pass'], step)
 
+
+def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
+                      log_error=False, phase="train", half=False):
+    assert phase in ["train", "eval"], "invalid running phase"
+    loss_sum = 0.0
+    correct = 0.0
+
+    if phase=="train": model.train()
+    elif phase=="eval": model.eval()
+
+    ttl = 0
+    with torch.autograd.set_grad_enabled(phase=="train"):
+        for i, (input, target) in enumerate(loader):
+            input = input.cuda(async=True)
+            if half: input = input.half()
+            target = target.cuda(async=True)
+            
+            if phase == 'train':
+                model.quant_param()
+            
+            output = model(input)
+            loss = criterion(output, target)
+
+            loss_sum += loss.cpu().item() * input.size(0)
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).sum()
+            ttl += input.size()[0]
+
+            if phase=="train":
+                optimizer.zero_grad()
+                loss.backward()
+                model.restore_real_params()
+                optimizer.step()
+
+    model.restore_real_params()
+    correct = correct.cpu().item()
+    return {
+        'loss': loss_sum / float(ttl),
+        'accuracy': correct / float(ttl) * 100.0,
+    }
+
 for epoch in range(start_epoch, args.epochs):
     time_ep = time.time()
 
     lr = schedule(epoch, args.lr_type)
     writer.add_scalar("lr", lr, epoch)
     utils.adjust_learning_rate(optimizer, lr)
-    train_res = utils.run_epoch(loaders['train'], model, criterion,
-                                optimizer=optimizer, writer=writer,
-                                log_error=args.log_error, phase="train",
-                                half=args.half)
+    train_res = utils.run_binaryconnect(loaders['train'], model, criterion,
+                                        optimizer=optimizer, writer=writer,
+                                        log_error=args.log_error, phase="train",
+                                        half=args.half)
     time_pass = time.time() - time_ep
     train_res['time_pass'] = time_pass
     log_result(writer, "train", train_res, epoch+1)

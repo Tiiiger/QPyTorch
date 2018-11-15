@@ -6,7 +6,12 @@ setup(
     ext_modules=[
         CUDAExtension('quant_cuda', [
             'quant_cuda.cpp',
-            'quant_kernel.cu'
+            'quant.cu',
+            'fixed_point_kernel.cu',
+            'block_kernel.cu',
+            'float_kernel.cu',
+            'sim_helper.cu',
+            'bit_helper.cu'
         ])
     ],
     cmdclass={
