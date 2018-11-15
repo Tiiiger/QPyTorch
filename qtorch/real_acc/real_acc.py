@@ -32,3 +32,6 @@ class ModelParamAccumulator(torch.nn.Module):
         """
         for index, param in enumerate(self.real_acc_params):
             self.pointer_to_params[index].data.copy_(param.data)
+
+    def forward(self, x):
+        return self.model(x)
