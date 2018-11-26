@@ -15,6 +15,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
 from qtorch.auto_low import lower
 from qtorch.optim import SGDLP
+from torch.optim import SGD
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
@@ -77,6 +78,8 @@ parser.add_argument('--no-quant-bn', action='store_true',
                     help='not quantize batch norm (default: off)')
 parser.add_argument('--auto_low', action='store_true', default=False,
                     help='auto_low')
+parser.add_argument('--float', action='store_true', default=False,
+                    help='use single precision model')
 parser.add_argument('--half', action='store_true', default=False,
                     help='use half precision model')
 
@@ -138,9 +141,10 @@ def make_quantizer(num):
                forward_number, backward_number,
                num_rounding, num_rounding)
 
-weight_quantizer = make_quantizer("weight")
-grad_quantizer = make_quantizer("grad")
-momentum_quantizer = make_quantizer("momentum")
+if not args.float:
+    weight_quantizer = make_quantizer("weight")
+    grad_quantizer = make_quantizer("grad")
+    momentum_quantizer = make_quantizer("momentum")
 
 dir_name = os.path.join("./checkpoint", args.name)
 print('Preparing checkpoint directory {}'.format(dir_name))
@@ -165,7 +169,7 @@ model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwa
 model.cuda()
 if args.auto_low:
     lower(model,
-          layer_types=["activation"],
+          layer_types=["activation", "conv"],
           forward_number=make_number(
                              args.activate_type,
                              wl=args.wl_activate,
@@ -204,15 +208,23 @@ def schedule(epoch, lr_schedule):
     return args.lr_init * factor
 
 criterion = F.cross_entropy
-optimizer = SGDLP(
-    model.parameters(),
-    lr=args.lr_init,
-    momentum=args.momentum,
-    weight_decay=args.wd,
-    weight_quant=weight_quantizer,
-    grad_quant=grad_quantizer,
-    momentum_quant=momentum_quantizer
-)
+if not args.float:
+    optimizer = SGDLP(
+        model.parameters(),
+        lr=args.lr_init,
+        momentum=args.momentum,
+        weight_decay=args.wd,
+        weight_quant=weight_quantizer,
+        grad_quant=grad_quantizer,
+        momentum_quant=momentum_quantizer
+    )
+else:
+    optimizer = SGD(
+        model.parameters(),
+        lr=args.lr_init,
+        momentum=args.momentum,
+        weight_decay=args.wd,
+    )
 
 start_epoch = 0
 if args.resume is not None:
