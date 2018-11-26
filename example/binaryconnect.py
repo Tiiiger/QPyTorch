@@ -4,6 +4,7 @@ import sys
 import time
 import json
 import torch
+from torch import nn
 import torch.nn.functional as F
 import utils
 import tabulate
@@ -233,6 +234,15 @@ def log_result(writer, name, res, step):
     writer.add_scalar("{}/err_perc".format(name), 100. - res['accuracy'], step)
     writer.add_scalar("{}/time_pass".format(name), res['time_pass'], step)
 
+def clip(model):
+    """Clip weight function for binaryconnect
+    """
+    clip_scale=[]
+    m=nn.Hardtanh(-1, 1)
+    for index, param in enumerate(model.pointer_to_params):
+        clip_scale.append(m(param.data))
+    for index, param in enumerate(model.pointer_to_params):
+        param.data.copy_(clip_scale[index].data)
 
 def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
                       log_error=False, phase="train", half=False):
@@ -251,7 +261,7 @@ def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
             target = target.cuda(async=True)
             
             if phase == 'train':
-                model.quant_param()
+                model.quant_weight()
             
             output = model(input)
             loss = criterion(output, target)
@@ -266,6 +276,8 @@ def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
                 loss.backward()
                 model.restore_real_params()
                 optimizer.step()
+                clip(model)
+
 
     model.restore_real_params()
     correct = correct.cpu().item()
@@ -280,10 +292,10 @@ for epoch in range(start_epoch, args.epochs):
     lr = schedule(epoch, args.lr_type)
     writer.add_scalar("lr", lr, epoch)
     utils.adjust_learning_rate(optimizer, lr)
-    train_res = utils.run_binaryconnect(loaders['train'], model, criterion,
-                                        optimizer=optimizer, writer=writer,
-                                        log_error=args.log_error, phase="train",
-                                        half=args.half)
+    train_res = run_binaryconnect(loaders['train'], model, criterion,
+                                  optimizer=optimizer, writer=writer,
+                                  log_error=args.log_error, phase="train",
+                                  half=args.half)
     time_pass = time.time() - time_ep
     train_res['time_pass'] = time_pass
     log_result(writer, "train", train_res, epoch+1)
