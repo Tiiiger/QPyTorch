@@ -191,17 +191,17 @@ def block_quantize(x, number=None, rounding="stochastic"):
     assert isinstance(number, BlockFloatingPoint)
     assert rounding in ["stochastic", "nearest"]
     quant_module = get_module(x)
-    if forward_rounding=="nearest":
+    if rounding=="nearest":
         out = quant_module.block_quantize_nearest(x.contiguous(), number.wl)
-    elif forward_rounding=="stochastic":
+    elif rounding=="stochastic":
         out = quant_module.block_quantize_stochastic(x.contiguous(), number.wl)
     return out
 
 def float_quantize(x, number=None, rounding="stochastic"):
     assert isinstance(number, FloatingPoint)
     quant_module = get_module(x)
-    if forward_rounding=="nearest":
+    if rounding=="nearest":
         out = quant_cuda.float_quantize_nearest(x.contiguous(), number.man, number.exp)
-    elif forward_rounding=="stochastic":
+    elif rounding=="stochastic":
         out = quant_cuda.float_quantize_stochastic(x.contiguous(), number.man, number.exp)
     return out
