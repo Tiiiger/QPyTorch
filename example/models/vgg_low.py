@@ -6,7 +6,6 @@
 import math
 import torch.nn as nn
 import torchvision.transforms as transforms
-from qtorch import BlockQuantizer, FixedQuantizer
 
 __all__ = ['VGG16LP', 'VGG16BNLP', 'VGG19LP', 'VGG19BNLP']
 
@@ -39,22 +38,7 @@ cfg = {
 }
 
 class VGG(nn.Module):
-    def __init__(self, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
-                 forward_layer_type="fixed", backward_layer_type="",
-                 forward_round_type="stochastic", backward_round_type="",
-                 num_classes=10, depth=16, batch_norm=False):
-
-        assert forward_layer_type in ["block", "fixed"]
-        assert forward_round_type in ["nearest", "stochastic"]
-        if backward_layer_type == "": backward_layer_type = forward_layer_type
-        if backward_round_type == "": backward_round_type = forward_round_type
-        assert backward_layer_type in ["block", "fixed"]
-        assert backward_round_type in ["nearest", "stochastic"]
-
-        if forward_layer_type == "block":
-            quant = lambda : BlockQuantizer(forward_wl, backward_wl, forward_round_type, backward_round_type)
-        elif forward_layer_type == "fixed":
-            quant = lambda : FixedQuantizer(forward_wl, forward_fl, backward_wl, backward_fl, forward_round_type, backward_round_type)
+    def __init__(self, quant=None, num_classes=10, depth=16, batch_norm=False):
 
         super(VGG, self).__init__()
         self.features = make_layers(cfg[depth], quant, batch_norm)
