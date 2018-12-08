@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 
 class ModelParamAccumulator(torch.nn.Module):
     """A wrapper class to save the real value parameter accumulator of a model
@@ -34,3 +35,4 @@ class ModelParamAccumulator(torch.nn.Module):
 
     def forward(self, x):
         return self.model(x)
+

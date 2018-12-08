@@ -6,7 +6,6 @@
 
 import torch.nn as nn
 import math
-from qtorch import BlockQuantizer, FixedQuantizer
 
 __all__ = ['PreResNet110LP', 'PreResNet20LP']
 
@@ -101,22 +100,7 @@ class Bottleneck(nn.Module):
 
 class PreResNet(nn.Module):
 
-    def __init__(self, forward_wl=-1, forward_fl=-1, backward_wl=-1, backward_fl=-1,
-                 forward_layer_type="fixed", backward_layer_type="",
-                 forward_round_type="stochastic", backward_round_type="",
-                 num_classes=10, depth=110):
-
-        assert forward_layer_type in ["block", "fixed"]
-        assert forward_round_type in ["nearest", "stochastic"]
-        if backward_layer_type == "": backward_layer_type = forward_layer_type
-        if backward_round_type == "": backward_round_type = forward_round_type
-        assert backward_layer_type in ["block", "fixed"]
-        assert backward_round_type in ["nearest", "stochastic"]
-
-        if forward_layer_type == "block":
-            quant = lambda : BlockQuantizer(forward_wl, backward_wl, forward_round_type, backward_round_type)
-        elif forward_layer_type == "fixed":
-            quant = lambda : FixedQuantizer(forward_wl, forward_fl, backward_wl, backward_fl, forward_round_type, backward_round_type)
+    def __init__(self,quant, num_classes=10, depth=110):
 
         super(PreResNet, self).__init__()
         assert (depth - 2) % 6 == 0, 'depth should be 6n+2'

@@ -23,7 +23,7 @@ class FixedPoint(Number):
 
 class BlockFloatingPoint(Number):
     def __init__(self, wl):
-        assert wl > 0, "invalid bits for word length:{}".format(self.wl)
+        assert wl > 0, "invalid bits for word length:{}".format(wl)
         self.wl = wl
 
     def __str__(self):

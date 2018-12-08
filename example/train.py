@@ -15,6 +15,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
 from qtorch.auto_low import lower
 from qtorch.optim import SGDLP
+from torch.optim import SGD
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
@@ -66,7 +67,7 @@ for num in num_types:
     parser.add_argument('--{}-exp'.format(num), type=int, default=-1, metavar='N',
                         help='number of bits to use for exponent of {}; -1 if full precision.'.format(num))
     parser.add_argument('--{}-type'.format(num), type=str, default="block", metavar='S',
-                        choices=["fixed", "block", "float"],
+                        choices=["fixed", "block", "float", "full"],
                         help='quantization type for {}; fixed or block.'.format(num))
     parser.add_argument('--{}-rounding'.format(num), type=str, default='stochastic', metavar='S',
                         choices=["stochastic","nearest"],
@@ -77,6 +78,8 @@ parser.add_argument('--no-quant-bn', action='store_true',
                     help='not quantize batch norm (default: off)')
 parser.add_argument('--auto_low', action='store_true', default=False,
                     help='auto_low')
+parser.add_argument('--float', action='store_true', default=False,
+                    help='use single precision model')
 parser.add_argument('--half', action='store_true', default=False,
                     help='use half precision model')
 
@@ -132,15 +135,17 @@ def make_quantizer(num):
     num_rounding = getattr(args, "{}_rounding".format(num))
     num_man = getattr(args, "{}_man".format(num))
     num_exp = getattr(args, "{}_exp".format(num))
+    if num_type == "full": return lambda x : x
     forward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
     backward_number = make_number(num_type, wl=num_wl, fl=num_fl, exp=num_exp, man=num_man)
     return Quantizer(
                forward_number, backward_number,
                num_rounding, num_rounding)
 
-weight_quantizer = make_quantizer("weight")
-grad_quantizer = make_quantizer("grad")
-momentum_quantizer = make_quantizer("momentum")
+if not args.float:
+    weight_quantizer = make_quantizer("weight")
+    grad_quantizer = make_quantizer("grad")
+    momentum_quantizer = make_quantizer("momentum")
 
 dir_name = os.path.join("./checkpoint", args.name)
 print('Preparing checkpoint directory {}'.format(dir_name))
@@ -157,7 +162,12 @@ model_cfg = getattr(models, args.model)
 if 'LP' in args.model and args.wl_activate == -1 and args.wl_error == -1:
     raise Exception("Using low precision model but not quantizing activation or error")
 elif 'LP' in args.model and (args.wl_activate != -1 or args.wl_error != -1):
-    raise NotImplemented
+    activate_number = make_number(args.activate_type, wl=args.wl_activate, fl=args.fl_activate,
+                                  exp=args.activate_exp, man=args.activate_man)
+    error_number = make_number(args.error_type, wl=args.wl_error, fl=args.fl_error,
+                               exp=args.error_exp, man=args.error_man)
+    make_quant = lambda : Quantizer(activate_number, error_number, args.activate_rounding, args.error_rounding)
+    model_cfg.kwargs.update({"quant":make_quant})
 
 if args.dataset=="CIFAR10": num_classes=10
 elif args.dataset=="IMAGENET12": num_classes=1000
@@ -204,15 +214,23 @@ def schedule(epoch, lr_schedule):
     return args.lr_init * factor
 
 criterion = F.cross_entropy
-optimizer = SGDLP(
-    model.parameters(),
-    lr=args.lr_init,
-    momentum=args.momentum,
-    weight_decay=args.wd,
-    weight_quant=weight_quantizer,
-    grad_quant=grad_quantizer,
-    momentum_quant=momentum_quantizer
-)
+if not args.float:
+    optimizer = SGDLP(
+        model.parameters(),
+        lr=args.lr_init,
+        momentum=args.momentum,
+        weight_decay=args.wd,
+        weight_quant=weight_quantizer,
+        grad_quant=grad_quantizer,
+        momentum_quant=momentum_quantizer
+    )
+else:
+    optimizer = SGD(
+        model.parameters(),
+        lr=args.lr_init,
+        momentum=args.momentum,
+        weight_decay=args.wd,
+    )
 
 start_epoch = 0
 if args.resume is not None:

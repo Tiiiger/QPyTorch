@@ -14,8 +14,10 @@ __device__ __forceinline__ float round(float a, float r, int sigma) {
 
 __device__ __forceinline__ float nearest_round(float a, int sigma) {
   a = ldexp(a, -sigma); 
+  // a = nearbyint(a);
   a = round(a);
-  // a = round_helper(a, 0.5);
+  // a = floor(a+0.5);
+  //a = ceil(a-0.5);
   a = ldexp(a, sigma);
   return a;
 }
