@@ -50,3 +50,37 @@ def run_epoch(loader, model, criterion, optimizer=None, writer=None,
         'loss': loss_sum / float(ttl),
         'accuracy': correct / float(ttl) * 100.0,
     }
+
+def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
+                      log_error=False, phase="train", half=False):
+    assert phase in ["train", "eval"], "invalid running phase"
+    loss_sum = 0.0
+    correct = 0.0
+
+    if phase=="train": model.train()
+    elif phase=="eval": model.eval()
+
+    ttl = 0
+    with torch.autograd.set_grad_enabled(phase=="train"):
+        for i, (input, target) in enumerate(loader):
+            input = input.cuda(async=True)
+            if half: input = input.half()
+            target = target.cuda(async=True)
+            output = model(input)
+            loss = criterion(output, target)
+
+            loss_sum += loss.cpu().item() * input.size(0)
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).sum()
+            ttl += input.size()[0]
+
+            if phase=="train":
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+    correct = correct.cpu().item()
+    return {
+        'loss': loss_sum / float(ttl),
+        'accuracy': correct / float(ttl) * 100.0,
+    }

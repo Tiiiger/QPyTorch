@@ -235,14 +235,12 @@ def log_result(writer, name, res, step):
     writer.add_scalar("{}/time_pass".format(name), res['time_pass'], step)
 
 def clip(model):
-    """Clip weight function for binaryconnect
+    """Assume model is a ModelParamAccumulator instance
     """
     clip_scale=[]
-    m=nn.Hardtanh(-1, 1)
+    m=torch.nn.Hardtanh(-1, 1)
     for index, param in enumerate(model.pointer_to_params):
-        clip_scale.append(m(param.data))
-    for index, param in enumerate(model.pointer_to_params):
-        param.data.copy_(clip_scale[index].data)
+        param.data.copy_(m(param.data).data)
 
 def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
                       log_error=False, phase="train", half=False):
@@ -277,7 +275,6 @@ def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
                 model.restore_real_params()
                 optimizer.step()
                 clip(model)
-
 
     model.restore_real_params()
     correct = correct.cpu().item()
