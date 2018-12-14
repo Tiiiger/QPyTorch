@@ -2,6 +2,9 @@
 #include <assert.h>
 #include <random>
 #include <tuple>
+#include "quant_cpu.h"
+// #include "bit_helper.cpp"
+// #include "sim_helper.cpp"
 
 using namespace at;
 
@@ -10,6 +13,7 @@ enum Mode {rNearest, rStochastic};
 #define CHECK_CONTIGUOUS(x) AT_CHECK(x.is_contiguous(), #x " must be contiguous")
 #define CHECK_CPU(x) AT_CHECK(!x.type().is_cuda(), #x " must be a CPU tensor")
 #define CHECK_INPUT(x) CHECK_CPU(x); CHECK_CONTIGUOUS(x);
+
 #define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int*>(x))
 #define RBITS_TO_FLOAT(x) (*reinterpret_cast<float*>(x))
 #define FLOAT_TO_BITS(f, i) assert(sizeof f == sizeof i); std::memcpy(&i, &f, sizeof i)
@@ -37,26 +41,6 @@ T clamp_mask_helper(T a, T min, T max, uint8_t* mask) {
     return min;
   }
   else return a;
-}
-
-void fixed_min_max(int wl, int fl, bool symmetric, float* t_min, float* t_max) {
-  int sigma = -fl;
-  *t_min = -ldexp(1.0, wl-fl-1);
-  *t_max = -*t_min-ldexp(1.0, sigma);
-  if (symmetric) *t_min = *t_min+ldexp(1.0, sigma);
-}
-
-float round(float a, float r, int sigma) {
-  a = ldexp(a, -sigma);
-  a = floor(a+r);
-  a = ldexp(a, sigma);
-  return a;
-}
-
-unsigned int extract_exponent(float *a) {
-  unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
-  temp = (temp << 1 >> 24); // single precision, 1 sign bit, 23 mantissa bits
-  return temp-127+1; // exponent offset and virtual bit
 }
 
 std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
@@ -198,9 +182,6 @@ Tensor block_quantize_stochastic(Tensor a, int wl) {
   return o;
 }
 
-unsigned int clip_exponent(unsigned int target, int exp_bits) {
-  return target;
-}
 
 Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
   // use external random number right now
@@ -213,10 +194,10 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
     man_bits = man_bits-1;
     unsigned int target;
     FLOAT_TO_BITS(a_array[i], target);
-    round_bitwise(target, man_bits, rStochastic);
-    target = clip_exponent(target, exp_bits);
+    unsigned int quantize_bits = round_bitwise(target, man_bits, rStochastic);
+    quantize_bits = clip_exponent(exp_bits, man_bits, target, quantize_bits);
     float quantized;
-    BITS_TO_FLOAT(target, quantized);
+    BITS_TO_FLOAT(quantize_bits, quantized);
     o_array[i] = quantized;
   }
   return o;
@@ -232,10 +213,10 @@ Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
     man_bits = man_bits-1;
     unsigned int target;
     FLOAT_TO_BITS(a_array[i], target);
-    round_bitwise(target, man_bits, rNearest);
-    target = clip_exponent(target, exp_bits);
+    unsigned int quantize_bits = round_bitwise(target, man_bits, rNearest);
+    quantize_bits = clip_exponent(exp_bits, man_bits, target, quantize_bits);
     float quantized;
-    BITS_TO_FLOAT(target, quantized);
+    BITS_TO_FLOAT(quantize_bits, quantized);
     o_array[i] = quantized;
   }
   return o;
