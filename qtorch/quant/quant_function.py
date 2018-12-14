@@ -199,7 +199,7 @@ def block_quantize(x, wl, rounding="stochastic"):
 def float_quantize(x, exp, man, rounding="stochastic"):
     quant_module = get_module(x)
     if rounding=="nearest":
-        out = quant_cuda.float_quantize_nearest(x.contiguous(), man, exp)
+        out = quant_module.float_quantize_nearest(x.contiguous(), man, exp)
     elif rounding=="stochastic":
-        out = quant_cuda.float_quantize_stochastic(x.contiguous(), man, exp)
+        out = quant_module.float_quantize_stochastic(x.contiguous(), man, exp)
     return out
