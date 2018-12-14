@@ -177,31 +177,29 @@ def quantizer(forward_number=None, backward_number=None,
     return Rounding.apply
 
 
-def fixed_point_quantize(x, number=None, rounding="stochastic"):
+def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stochastic"):
     assert isinstance(number, FixedPoint)
     assert rounding in ["stochastic", "nearest"]
     quant_module = get_module(x)
     if rounding == "nearest":
-        out = quant_module.fixed_point_quantize_nearest(x.contiguous(), number.wl, number.fl, number.clamp, number.symmetric)
+        out = quant_module.fixed_point_quantize_nearest(x.contiguous(), wl, fl, clamp, symmetric)
     elif rounding == "stochastic":
-        out = quant_module.fixed_point_quantize_stochastic(x.contiguous(), number.wl, number.fl, number.clamp, number.symmetric)
+        out = quant_module.fixed_point_quantize_stochastic(x.contiguous(), wl, fl, clamp, symmetric)
     return out
 
-def block_quantize(x, number=None, rounding="stochastic"):
-    assert isinstance(number, BlockFloatingPoint)
+def block_quantize(x, wl, rounding="stochastic"):
     assert rounding in ["stochastic", "nearest"]
     quant_module = get_module(x)
     if rounding=="nearest":
-        out = quant_module.block_quantize_nearest(x.contiguous(), number.wl)
+        out = quant_module.block_quantize_nearest(x.contiguous(), wl)
     elif rounding=="stochastic":
-        out = quant_module.block_quantize_stochastic(x.contiguous(), number.wl)
+        out = quant_module.block_quantize_stochastic(x.contiguous(), wl)
     return out
 
-def float_quantize(x, number=None, rounding="stochastic"):
-    assert isinstance(number, FloatingPoint)
+def float_quantize(x, exp, man, rounding="stochastic"):
     quant_module = get_module(x)
     if rounding=="nearest":
-        out = quant_cuda.float_quantize_nearest(x.contiguous(), number.man, number.exp)
+        out = quant_cuda.float_quantize_nearest(x.contiguous(), man, exp)
     elif rounding=="stochastic":
-        out = quant_cuda.float_quantize_stochastic(x.contiguous(), number.man, number.exp)
+        out = quant_cuda.float_quantize_stochastic(x.contiguous(), man, exp)
     return out
