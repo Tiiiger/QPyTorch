@@ -8,7 +8,7 @@ import numpy as np
 
 __all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
 
-def assert_wl_fl(wl, fl, stage):
+def assert_wl_fl(wl, fl, stage=""):
     if wl == -1 and fl != -1:
         raise ValueError("fixed point {} wl {}, fl {}".format(stage, wl, fl))
 
