@@ -5,27 +5,49 @@ from qtorch import FixedPoint, BlockFloatingPoint, FloatingPoint
 
 class TestStochastic(unittest.TestCase):
     """
-    test when [clamp] is True, fixed point quantization will
-    clamp the number; otherwise, it will not.
+    invariant: quantized numbers cannot be greater than the maximum representable number
+    or lower than the maximum representable number
     """
-    def test_stochastic_fixed(self):
+    def test_fixed(self):
+        """test fixed point clamping"""
         for d in ['cpu', 'cuda']:
             for r in ['stochastic', "nearest"]:
-                number = FixedPoint(wl=5, fl=4, clamp=True, symmetric=False)
-                t_min = - 2 ** (number.wl-number.fl-1)
-                t_max = 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl)
+                wl = 5
+                fl = 4
+                t_min = - 2 ** (wl-fl-1)
+                t_max = 2 ** (wl-fl-1) - 2 ** (-fl)
                 a = torch.linspace(-2, 2, steps=100, device=d)
-                quant = lambda x : fixed_point_quantize(x, number=number, rounding=r)
-                clamp_a = quant(a)
+                clamp_a = fixed_point_quantize(a, wl=wl, fl=fl, clamp=True, rounding=r)
                 self.assertEqual(t_max, clamp_a.max().item())
                 self.assertEqual(t_min, clamp_a.min().item())
 
-                number = FixedPoint(wl=5, fl=4, clamp=False, symmetric=False)
                 a = torch.linspace(-2, 2, steps=100, device=d)
-                quant = lambda x : fixed_point_quantize(x, number=number, rounding=r)
-                no_clamp_a = quant(a)
+                no_clamp_a = fixed_point_quantize(a, wl=wl, fl=fl, clamp=False, rounding=r)
                 self.assertLess(t_max, no_clamp_a.max().item())
                 self.assertGreater(t_min, no_clamp_a.min().item())
+
+    def test_float(self):
+        """test floating point clamping"""
+        formats=[(6, 9), (5, 10), (5, 2)]
+
+        for exp, man in formats:
+            for d in ['cpu', 'cuda']:
+                for r in ['stochastic', "nearest"]:
+                    # test positive
+                    a_max = 2**(2**(exp-1))*(1-2**(-man-1))
+                    a_min = 2**(-2**(exp-1)+1)
+                    a = torch.Tensor([2**50, 2**(-50)]).to(device=d)
+                    quant_a = float_quantize(a, exp=exp, man=man, rounding=r)
+                    self.assertEqual(quant_a[0].item(), a_max)
+                    self.assertAlmostEqual(quant_a[1].item(), a_min)
+
+                    # test negative
+                    a_max = -2**(2**(exp-1))*(1-2**(-man-1))
+                    a_min = -2**(-2**(exp-1)+1)
+                    a = torch.Tensor([-2**35, -2**(-35)]).to(device=d)
+                    quant_a = float_quantize(a, exp=exp, man=man, rounding=r)
+                    self.assertEqual(quant_a[0].item(), a_max)
+                    self.assertAlmostEqual(quant_a[1].item(), a_min)
 
 if __name__ == "__main__":
     unittest.main()
