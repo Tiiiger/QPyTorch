@@ -214,22 +214,17 @@ def schedule(epoch, lr_schedule):
     return args.lr_init * factor
 
 criterion = F.cross_entropy
+optimizer = SGD(
+   model.parameters(),
+   lr=args.lr_init,
+   momentum=args.momentum,
+   weight_decay=args.wd,
+)
 if not args.float:
-    optimizer = SGDLP(
-        model.parameters(),
-        lr=args.lr_init,
-        momentum=args.momentum,
-        weight_decay=args.wd,
-        weight_quant=weight_quantizer,
-        grad_quant=grad_quantizer,
-        momentum_quant=momentum_quantizer
-    )
-else:
-    optimizer = SGD(
-        model.parameters(),
-        lr=args.lr_init,
-        momentum=args.momentum,
-        weight_decay=args.wd,
+    optimizer = SGDLP(optimizer,
+                      weight_quant=weight_quantizer,
+                      grad_quant=grad_quantizer,
+                      momentum_quant=momentum_quantizer
     )
 
 start_epoch = 0
