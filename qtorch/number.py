@@ -30,6 +30,11 @@ class BlockFloatingPoint(Number):
         return "BlockFloatingPoint Number with wl={:d}".format(self.wl)
 
 class FloatingPoint(Number):
+    """Low-Precision Floating Point Format
+    Attributes:
+        exp: number of bits allocated for exponent
+        man: number of bits allocated for mantissa, not counting the virtual bits
+    """
     def __init__(self, exp, man):
         assert 8 >= exp > 0, "invalid bits for exponent:{}".format(exp)
         assert 23 >= man > 0, "invalid bits for mantissa:{}".format(man)

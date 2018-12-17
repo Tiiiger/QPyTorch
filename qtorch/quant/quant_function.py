@@ -7,58 +7,10 @@ import torch.nn.functional as F
 import numpy as np
 
 __all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
+
 def assert_wl_fl(wl, fl, stage):
     if wl == -1 and fl != -1:
         raise ValueError("fixed point {} wl {}, fl {}".format(stage, wl, fl))
-
-class FloatRounding(torch.autograd.Function):
-
-    @staticmethod
-    def forward(self, x,
-                forward_number=None, backward_number=None,
-                forward_rounding="stochastic", backward_rounding="stochastic"):
-        for num in [forward_number, backward_number]:
-            if num != None: assert isinstance(num, FloatingPoint), "Number must be FloatingPoint"
-        if x.is_cuda:
-            quant_module = quant_cuda
-        else:
-            quant_module = quant_cpu
-        self.backward_number = backward_number
-        self.backward_rounding = backward_rounding
-
-        assert forward_rounding in ["stochastic", "nearest"]
-        assert backward_rounding in ["stochastic", "nearest"]
-
-        if forward_number == None: return x
-
-        if forward_rounding=="nearest":
-            out = quant_cuda.float_quantize_nearest(x, forward_number.man, forward_number.exp)
-        elif forward_rounding=="stochastic":
-            out = quant_cuda.float_quantize_stochastic(x, forward_number.man, forward_number.exp)
-        return out
-
-    @staticmethod
-    def backward(self, grad_output):
-        grad_input = None
-        if grad_output.is_cuda:
-            quant_module = quant_cuda
-        else:
-            quant_module = quant_cpu
-
-        if self.needs_input_grad[0]:
-            if self.backward_number == None:
-                if self.backward_rounding=="nearest":
-                    grad_input = quant_cuda.float_quantize_nearest(grad_output,
-                                                                   self.backward_number.man,
-                                                                   self.backward_number.exp)
-                elif self.backward_rounding=="stochastic":
-                    grad_input = quant_cuda.float_quantize_stochastic(grad_output,
-                                                                      self.backward_number.man,
-                                                                      self.backward_number.exp)
-            else:
-                grad_input = grad_output
-
-        return grad_input, None, None, None, None, None, None
 
 def get_module(x):
     if x.is_cuda:
@@ -178,8 +130,9 @@ def quantizer(forward_number=None, backward_number=None,
 
 
 def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stochastic"):
-    assert isinstance(number, FixedPoint)
+    assert isinstance(x, torch.Tensor)
     assert rounding in ["stochastic", "nearest"]
+    assert_wl_fl(wl, fl)
     quant_module = get_module(x)
     if rounding == "nearest":
         out = quant_module.fixed_point_quantize_nearest(x.contiguous(), wl, fl, clamp, symmetric)
@@ -188,7 +141,8 @@ def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stoch
     return out
 
 def block_quantize(x, wl, rounding="stochastic"):
-    assert rounding in ["stochastic", "nearest"]
+    assert isinstance(x, torch.Tensor), "x is not a Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding=="nearest":
         out = quant_module.block_quantize_nearest(x.contiguous(), wl)
@@ -197,6 +151,17 @@ def block_quantize(x, wl, rounding="stochastic"):
     return out
 
 def float_quantize(x, exp, man, rounding="stochastic"):
+    """Quantize a single precision Floating Point into low-precision Floating Point
+    Args:
+        x: the single precision number(torch.Tensor) to be quantized
+        exp: number of bits allocated for exponent
+        man: number of bits allocated for mantissa, not counting the virtual bit
+        rounding: rounding mode, \"stochastic\" or \"nearest\"
+    Return:
+        a quantized low-precision floating point number as torch.Tensor
+    """
+    assert isinstance(x, torch.Tensor), "x is not a Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding=="nearest":
         out = quant_module.float_quantize_nearest(x.contiguous(), man, exp)
