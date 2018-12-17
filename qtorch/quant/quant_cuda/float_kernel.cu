@@ -10,7 +10,6 @@ __global__ void float_kernel_stochastic(float* __restrict__ a,
                                         int exp_bits) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    man_bits = man_bits-1; // 1 virtual bit
     unsigned int old_num = FLOAT_TO_BITS(&a[index]);
     unsigned int rand_prob = (unsigned int) r[index];
     unsigned int quantize = round_bitwise_stochastic(old_num, rand_prob, man_bits);
@@ -28,7 +27,6 @@ __global__ void float_kernel_nearest(float* __restrict__ a,
                                      int exp_bits) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    man_bits = man_bits-1; // 1 virtual bit
     unsigned int old_num = FLOAT_TO_BITS(&a[index]);
     unsigned int quantize = round_bitwise_nearest(old_num, man_bits);
     quantize = clip_exponent(exp_bits, man_bits, old_num, quantize);

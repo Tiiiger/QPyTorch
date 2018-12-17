@@ -191,7 +191,6 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits) {
   int size = a.numel();
 
   for (int64_t i=0; i < size; i++) {
-    man_bits = man_bits-1;
     unsigned int target;
     FLOAT_TO_BITS(a_array[i], target);
     unsigned int quantize_bits = round_bitwise(target, man_bits, rStochastic);
@@ -210,7 +209,6 @@ Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
   int size = a.numel();
 
   for (int64_t i=0; i < size; i++) {
-    man_bits = man_bits-1;
     unsigned int target;
     FLOAT_TO_BITS(a_array[i], target);
     unsigned int quantize_bits = round_bitwise(target, man_bits, rNearest);
