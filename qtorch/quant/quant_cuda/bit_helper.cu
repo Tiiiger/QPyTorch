@@ -30,7 +30,7 @@ __device__ __forceinline__ unsigned int clip_exponent(int exp_bits, int man_bits
                                                       unsigned int quantized_num) {
   int quantized_exponent_store = quantized_num << 1 >> 1 >> 23; // 1 sign bit, 23 mantissa bits
   int min_exponent_store = -((1 << (exp_bits-1))-1) + 127;
-  int max_exponent_store = (1 << (exp_bits-1)) + 127;
+  int max_exponent_store = (1 << (exp_bits-1)-1) + 127; // excluding the exponent for infinity
   if (quantized_exponent_store > max_exponent_store) {
     unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> (23-man_bits) << (23-man_bits); // 1 sign bit, 8 exponent bits, 1 virtual bit
     unsigned int max_num = ((unsigned int) max_exponent_store << 23) | max_man;
