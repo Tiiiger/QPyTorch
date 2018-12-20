@@ -26,24 +26,25 @@ class TestStochastic(unittest.TestCase):
             a = torch.linspace(- 2 ** (number.wl-number.fl-1), 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl), steps=100, device=d)
             quant = quantizer(forward_number=number, forward_rounding='stochastic', clamping_grad_zero=True)
             exp_a = self.calc_expectation(a, quant)
-            self.assertTrue(((a-exp_a)**2).mean()<1e-8)
+            self.assertTrue(((a-exp_a)**2).mean().item() <1e-8)
 
     def test_stochastic_block(self):
         for d in ['cpu', 'cuda']:
-            number = BlockFloatingPoint(wl=5)
+            number = BlockFloatingPoint(wl=6)
             a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
             quant = quantizer(forward_number=number, forward_rounding='stochastic')
             exp_a = self.calc_expectation(a, quant)
-            diff = ((a-exp_a)**2).mean()
+            diff = ((a-exp_a)**2).mean().item()
             self.assertTrue((diff < 1e-8))
 
     def test_stochastic_float(self):
         for d in ['cpu', 'cuda']:
-            number = FloatingPoint(exp=3, man=5)
+            number = FloatingPoint(exp=5, man=3)
             a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
             quant = quantizer(forward_number=number, forward_rounding='stochastic')
             exp_a = self.calc_expectation(a, quant)
-            self.assertTrue(((a-exp_a)**2).mean() < 1e-8)
+            diff = ((a-exp_a)**2).mean().item()
+            self.assertTrue(diff < 1e-8)
 
 if __name__ == "__main__":
     unittest.main()
