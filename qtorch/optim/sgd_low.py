@@ -19,11 +19,12 @@ class SGDLP(Optimizer):
         self.sgd_optim = sgd_optim
 
         assert grad_scaling > 0, "gradient scaling must be positive"
-        self.grad_scaling = 1
+        self.grad_scaling = grad_scaling
 
         self.weight_quant=weight_quant
         self.grad_quant=grad_quant
         self.momentum_quant=momentum_quant
+        self.acc_quant=acc_quant
 
         if self.acc_quant != None:
             self.weight_acc = {}
