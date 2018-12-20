@@ -3,8 +3,6 @@
 #include <random>
 #include <tuple>
 #include "quant_cpu.h"
-// #include "bit_helper.cpp"
-// #include "sim_helper.cpp"
 
 using namespace at;
 

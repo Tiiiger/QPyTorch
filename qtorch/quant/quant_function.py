@@ -1,10 +1,31 @@
 import torch
 from qtorch import Number, FixedPoint, BlockFloatingPoint, FloatingPoint
-import quant_cuda
-import quant_cpu
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from torch.utils.cpp_extension import load
+import os
+current_path = os.path.dirname(os.path.realpath(__file__))
+quant_cpu = load(
+        name='quant_cpu',
+        sources=[
+            os.path.join(current_path, "quant_cpu/quant_cpu.cpp"),
+            os.path.join(current_path, "quant_cpu/bit_helper.cpp"),
+            os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
+            ]
+        )
+quant_cuda = load(
+        name='quant_cuda',
+        sources=[
+            os.path.join(current_path, "quant_cuda/quant_cuda.cpp"),
+            os.path.join(current_path, "quant_cuda/bit_helper.cu"),
+            os.path.join(current_path, "quant_cuda/sim_helper.cu"),
+            os.path.join(current_path, "quant_cuda/block_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/float_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/quant.cu"),
+            ]
+        )
 
 __all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
 
