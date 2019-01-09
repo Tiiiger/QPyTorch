@@ -1,22 +1,22 @@
 import torch
-from torch.optim import Optimizer, SGD
+from torch.optim import Optimizer, SGD, Adam
 
-__all__ = ["SGDLP"]
+__all__ = ["OptimLP"]
 
-class SGDLP(Optimizer):
+class OptimLP(Optimizer):
 
-    def __init__(self, sgd_optim,
+    def __init__(self, optim,
                  grad_scaling=1,
                  weight_quant=None,
                  grad_quant=None,
                  momentum_quant=None,
                  acc_quant=None):
-        assert isinstance(sgd_optim, SGD)
-        super(SGDLP, self).__init__(sgd_optim.param_groups, sgd_optim.defaults) # place holder
+        assert (isinstance(optim, SGD) or isinstance(optim, Adam))
+        super(OptimLP, self).__init__(optim.param_groups, optim.defaults) # place holder
 
         # python dictionary does not copy by default
-        self.param_groups = sgd_optim.param_groups
-        self.sgd_optim = sgd_optim
+        self.param_groups = optim.param_groups
+        self.optim = optim
 
         assert grad_scaling > 0, "gradient scaling must be positive"
         self.grad_scaling = grad_scaling
@@ -45,7 +45,7 @@ class SGDLP(Optimizer):
                 for p in group['params']:
                     p.data = self.weight_acc[p].data
 
-        loss = self.sgd_optim.step()
+        loss = self.optim.step()
 
         # switch weight into acc after stepping and quantize
         if not self.acc_quant is None:
@@ -61,9 +61,15 @@ class SGDLP(Optimizer):
 
         # quantize momentum
         if not self.momentum_quant is None:
+            if isinstance(self.optim, SGD):
+                keys = ['momentum_buffer']
+            elif isinstance(self.optim, Adam):
+                # TODO: support amsgrad
+                keys = ['exp_avg', 'exp_avg_sq']
             for group in self.param_groups:
                 for p in group['params']:
-                    param_state = self.sgd_optim.state[p]
-                    param_state['momentum_buffer'] = self.momentum_quant(param_state['momentum_buffer'])
+                    param_state = self.optim.state[p]
+                    for key in keys:
+                        param_state[key] = self.momentum_quant(param_state[key])
 
         return loss
