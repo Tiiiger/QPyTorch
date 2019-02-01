@@ -67,6 +67,7 @@ class OptimLP(Optimizer):
                 # TODO: support amsgrad
                 keys = ['exp_avg', 'exp_avg_sq']
             for group in self.param_groups:
+                if group['momentum'] == 0: continue
                 for p in group['params']:
                     param_state = self.optim.state[p]
                     for key in keys:

@@ -129,7 +129,7 @@ def sequential_lower(model,
                       forward_rounding, backward_rounding)
     
     lower_func = _get_return_sequential_lower_func(quant, layer_types=layer_types)
-    return _get_return_sequential_lower_func(quant, layer_types=layer_types)(copy.deepcopy(model))
+    return lower_func(copy.deepcopy(model))
 
 # def sequential_lower_(model,
 #                       layer_types=[],
