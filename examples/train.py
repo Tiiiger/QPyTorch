@@ -14,7 +14,7 @@ from tensorboardX import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
 from qtorch.quant import *
 from qtorch.auto_low import lower
-from qtorch.optim import SGDLP
+from qtorch.optim import OptimLP
 from torch.optim import SGD
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 
@@ -221,7 +221,7 @@ optimizer = SGD(
    weight_decay=args.wd,
 )
 if not args.float:
-    optimizer = SGDLP(optimizer,
+    optimizer = OptimLP(optimizer,
                       weight_quant=weight_quantizer,
                       grad_quant=grad_quantizer,
                       momentum_quant=momentum_quantizer
