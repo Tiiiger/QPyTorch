@@ -1,0 +1,15 @@
+python train.py --dataset CIFAR10 \
+                --data_path ./data \
+                --model VGG16 \
+                --epochs=200 \
+                --lr_init=0.05 \
+                --wd=5e-4 \
+                --name half_pytorch \
+                --seed 200 \
+                --batch_size 128 \
+                --weight-type full \
+                --grad-type full \
+                --activate-type full \
+                --error-type full \
+                --momentum-type full \
+                --half;

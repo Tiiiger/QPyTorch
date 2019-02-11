@@ -5,11 +5,11 @@ python train.py --dataset CIFAR10 \
        --lr_init=0.05 \
        --wd=5e-4 \
        --name example \
-       --wl-weight 10 \
-       --wl-grad 10 \
-       --wl-momentum 10 \
-       --wl-activate 10 \
-       --wl-error 10 \
+       --wl-weight 8 \
+       --wl-grad 8 \
+       --wl-momentum 8 \
+       --wl-activate 8 \
+       --wl-error 8 \
        --seed 100 \
        --batch_size 128  \
        --weight-rounding stochastic \
