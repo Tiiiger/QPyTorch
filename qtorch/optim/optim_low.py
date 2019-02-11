@@ -4,6 +4,23 @@ from torch.optim import Optimizer, SGD, Adam
 __all__ = ["OptimLP"]
 
 class OptimLP(Optimizer):
+    """
+    A low-precision optimizer wrapper that handles weight, gradient, accumulator quantization.
+
+    Args:
+        - :attr: `weight_quant`: a weight quantization function which takes a pytorch tensor and returns a tensor. If None, does not quantize weight.
+        - :attr: `grad_quant`: a gradient quantization function which takes a pytorch tensor and returns a tensor. If None, does not quantize weight.
+        - :attr: `momentum_quant`: a momentum quantization function which takes a pytorch tensor and returns a tensor.
+                                   If None, does not quantize weight.
+        - :attr: `accumulator_quant`: a accumulator quantization function which takes
+                                  a pytorch tensor and returns a tensor. If not None, a
+                                  OptimLP object would create memory copies of model parameters that serve as
+                                  gradient accumulators. If None, does not use gradient accumulators.
+
+    Example:
+        >>> optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        >>> optimizer = OptimLP(optiimizer)
+    """
 
     def __init__(self, optim,
                  grad_scaling=1,
@@ -41,6 +58,10 @@ class OptimLP(Optimizer):
                     self.weight_acc[p] = p.detach().clone()
 
     def step(self, closure=None):
+        """
+        Performs one step of optimization with the underlying optimizer.
+        Quantizes gradient and momentum before stepping. Quantizes gradient accumulator and weight after stepping.
+        """
         # quantize gradient
         if not self.grad_quant is None:
             for group in self.param_groups:
