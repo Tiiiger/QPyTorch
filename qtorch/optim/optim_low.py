@@ -26,6 +26,14 @@ class OptimLP(Optimizer):
         self.momentum_quant=momentum_quant
         self.acc_quant=acc_quant
 
+        if isinstance(self.optim, SGD):
+            self.momentum_keys = ['momentum_buffer']
+        elif isinstance(self.optim, Adam):
+            # TODO: support amsgrad
+            self.momentum_keys = ['exp_avg', 'exp_avg_sq']
+        else:
+            raise NotImplementedError("Only supporting Adam and SGD for now. ")
+
         if self.acc_quant != None:
             self.weight_acc = {}
             for group in self.param_groups:
@@ -61,16 +69,11 @@ class OptimLP(Optimizer):
 
         # quantize momentum
         if not self.momentum_quant is None:
-            if isinstance(self.optim, SGD):
-                keys = ['momentum_buffer']
-            elif isinstance(self.optim, Adam):
-                # TODO: support amsgrad
-                keys = ['exp_avg', 'exp_avg_sq']
             for group in self.param_groups:
                 if group['momentum'] == 0: continue
                 for p in group['params']:
                     param_state = self.optim.state[p]
-                    for key in keys:
+                    for key in self.momentum_keys:
                         param_state[key] = self.momentum_quant(param_state[key])
 
         return loss
