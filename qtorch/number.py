@@ -8,6 +8,13 @@ class Number():
         raise NotImplemented
 
 class FixedPoint(Number):
+    """
+    Low-Precision Fixed Point Format.
+
+    Args:
+        - :attr: `wl` word length of each fixed point number
+        - :attr: `fl` fractional length of each fixed point number
+    """
     def __init__(self, wl, fl, clamp=True, symmetric=False):
         assert wl > 0, "invalid bits for word length: {}".format(wl)
         assert fl > 0, "invalid bits for fractional length: {}".format(fl)
@@ -22,6 +29,13 @@ class FixedPoint(Number):
         return "FixedPoint Number with wl={:d}, fl={:d}".format(self.wl, self.fl)
 
 class BlockFloatingPoint(Number):
+    """
+    Low-Precision Block Floating Point Format.
+    Currently only supports treating the entire input tensor as a block.
+
+    Args:
+        - :attr: `wl` word length of the tensor
+    """
     def __init__(self, wl):
         assert wl > 0, "invalid bits for word length:{}".format(wl)
         self.wl = wl
@@ -29,11 +43,16 @@ class BlockFloatingPoint(Number):
     def __str__(self):
         return "BlockFloatingPoint Number with wl={:d}".format(self.wl)
 
+    def __repr__(self):
+        return "BlockFloatingPoint Number with wl={:d}".format(self.wl)
+
 class FloatingPoint(Number):
-    """Low-Precision Floating Point Format
-    Attributes:
-        exp: number of bits allocated for exponent
-        man: number of bits allocated for mantissa, not counting the virtual bits
+    """
+    Low-Precision Floating Point Format
+
+    Args:
+        - :attr: `exp`: number of bits allocated for exponent
+        - :attr: `man`: number of bits allocated for mantissa, not counting the virtual bits
     """
     def __init__(self, exp, man):
         assert 8 >= exp > 0, "invalid bits for exponent:{}".format(exp)
@@ -42,4 +61,7 @@ class FloatingPoint(Number):
         self.man = man
 
     def __str__(self):
+        return "FloatingPoint Number with exponent={:d}, mantissa={:d}".format(self.exp, self.man)
+
+    def __repr__(self):
         return "FloatingPoint Number with exponent={:d}, mantissa={:d}".format(self.exp, self.man)
