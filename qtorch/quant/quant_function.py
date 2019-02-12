@@ -14,18 +14,22 @@ quant_cpu = load(
             os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
             ]
         )
-quant_cuda = load(
-        name='quant_cuda',
-        sources=[
-            os.path.join(current_path, "quant_cuda/quant_cuda.cpp"),
-            os.path.join(current_path, "quant_cuda/bit_helper.cu"),
-            os.path.join(current_path, "quant_cuda/sim_helper.cu"),
-            os.path.join(current_path, "quant_cuda/block_kernel.cu"),
-            os.path.join(current_path, "quant_cuda/float_kernel.cu"),
-            os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
-            os.path.join(current_path, "quant_cuda/quant.cu"),
-            ]
-        )
+
+if torch.cuda.is_available():
+     quant_cuda = load(
+             name='quant_cuda',
+             sources=[
+                 os.path.join(current_path, "quant_cuda/quant_cuda.cpp"),
+                 os.path.join(current_path, "quant_cuda/bit_helper.cu"),
+                 os.path.join(current_path, "quant_cuda/sim_helper.cu"),
+                 os.path.join(current_path, "quant_cuda/block_kernel.cu"),
+                 os.path.join(current_path, "quant_cuda/float_kernel.cu"),
+                 os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
+                 os.path.join(current_path, "quant_cuda/quant.cu"),
+                 ]
+             )
+else:
+    quant_cuda = quant_cpu
 
 __all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
 
@@ -172,13 +176,16 @@ def block_quantize(x, wl, rounding="stochastic"):
     return out
 
 def float_quantize(x, exp, man, rounding="stochastic"):
-    """Quantize a single precision Floating Point into low-precision Floating Point
+    """
+    Quantize a single precision Floating Point into low-precision Floating Point
+
     Args:
-        x: the single precision number(torch.Tensor) to be quantized
-        exp: number of bits allocated for exponent
-        man: number of bits allocated for mantissa, not counting the virtual bit
-        rounding: rounding mode, \"stochastic\" or \"nearest\"
-    Return:
+        - :attr: `x`: the single precision number(torch.Tensor) to be quantized
+        - :attr: `exp`: number of bits allocated for exponent
+        - :attr: `man`: number of bits allocated for mantissa, not counting the virtual bit
+        - :attr: `rounding`: rounding mode, \"stochastic\" or \"nearest\"
+
+    Returns:
         a quantized low-precision floating point number as torch.Tensor
     """
     assert isinstance(x, torch.Tensor), "x is not a Floating Point Tensor"
