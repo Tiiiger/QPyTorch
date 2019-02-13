@@ -47,6 +47,24 @@ def get_module(x):
 def quantizer(forward_number=None, backward_number=None,
               forward_rounding="stochastic", backward_rounding="stochastic",
               clamping_grad_zero=False, backward_hooks=[]):
+    """
+    Creates a quantization function to support quantizing forward and backward process differently.
+
+    Args:
+        - :param: forward_number (qtorch.Number, optional) : the number format used for forward quantization.
+                  if is None, the quantization would be a identity mapping.
+        - :param: backward_number (qtorch.Number, optional) : the number format used for backward quantization.
+                  if is None, the quantization would be a identity mapping.
+        - :param: forward_rounding (string) : rounding mode, \"stochastic\" or \"nearest\" (default: \"stochastic\")
+        - :param: backward_rounding (string) : rounding mode, \"stochastic\" or \"nearest\" (default: \"stochastic\")
+        - :param: clamping_grad_zero (bool) : zero out the gradient of numbers that are being clamped during forward propagation.
+                  currently requires forward_number to be a fixed point number.
+        - :param: backward_hooks (iterable) : iterable of functions that will be applied to gradients before backward quantization.
+                  For example, this can be used to support custom scaling.
+
+    Returns:
+        A quantization function as specified (torch.Tensor -> torch.Tensor)
+    """
 
     for rounding in [forward_rounding, backward_rounding]:
         assert rounding in ["stochastic", "nearest"], "invalid rounding type {:s}".format(rounding)
@@ -155,6 +173,22 @@ def quantizer(forward_number=None, backward_number=None,
 
 
 def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stochastic"):
+    """
+    Quantize a single precision Floating Point into low-precision Fixed Point
+
+    Args:
+        - :param: `x` (torch.Tensor) :  the single precision number to be quantized
+        - :param: `wl` (int) : word length of the fixed point number being simulated
+        - :param: `fl` (int) : fractional length of the fixed point number being simulated
+        - :param: `clamp` (bool, optional) : clamp input numbers into representable range. if false,
+                  the quantization will only simulate the effect on precision
+        - :param: `symmetric` (bool, optional) : discard the minimum representable number to make the representable
+                  range symmetric
+        - :param: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\" (default: \"stochastic\")
+
+    Returns:
+        - a quantized low-precision block floating point number (torch.Tensor)
+    """
     assert isinstance(x, torch.Tensor)
     assert rounding in ["stochastic", "nearest"]
     assert_wl_fl(wl, fl)
@@ -166,7 +200,18 @@ def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stoch
     return out
 
 def block_quantize(x, wl, rounding="stochastic"):
-    assert isinstance(x, torch.Tensor), "x is not a Floating Point Tensor"
+    """
+    Quantize a single precision Floating Point into low-precision Block Floating Point
+
+    Args:
+        - :param: `x` (torch.Tensor) :  the single precision number to be quantized
+        - :param: `wl` (int) : word length of the block floating point number being simulated
+        - :param: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
+
+    Returns:
+        - a quantized low-precision block floating point number (torch.Tensor)
+    """
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding=="nearest":
@@ -180,15 +225,15 @@ def float_quantize(x, exp, man, rounding="stochastic"):
     Quantize a single precision Floating Point into low-precision Floating Point
 
     Args:
-        - :attr: `x`: the single precision number(torch.Tensor) to be quantized
-        - :attr: `exp`: number of bits allocated for exponent
-        - :attr: `man`: number of bits allocated for mantissa, not counting the virtual bit
-        - :attr: `rounding`: rounding mode, \"stochastic\" or \"nearest\"
+        - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
+        - :attr: `exp` (int) : number of bits allocated for exponent
+        - :attr: `man` (int) : number of bits allocated for mantissa, not counting the virtual bit
+        - :attr: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
 
     Returns:
-        a quantized low-precision floating point number as torch.Tensor
+        - a quantized low-precision floating point number (torch.Tensor)
     """
-    assert isinstance(x, torch.Tensor), "x is not a Floating Point Tensor"
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding=="nearest":
