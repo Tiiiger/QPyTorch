@@ -69,8 +69,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'QPyTorch'
-copyright = '2019, Tianyi Zhang, Zhiqiu Lin, Christopher De Sa'
-author = 'Tianyi Zhang, Zhiqiu Lin, Christopher De Sa'
+copyright = '2019, Tianyi Zhang, Zhiqiu Lin, Guandao Yang, Christopher De Sa'
+author = 'Tianyi Zhang, Zhiqiu Lin, Guandao Yang, Christopher De Sa'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -179,6 +179,3 @@ texinfo_documents = [
      author, 'QPyTorch', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-

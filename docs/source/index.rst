@@ -12,9 +12,8 @@ QPyTorch's documentation
    :maxdepth: 1
    :caption: Guides and Tutorials:
 
-   examples/Low_Precision_Quick_Intro
-   examples/Functionality_Overview
-   examples/CIFAR10_Low_Precision_Training_Example
+   examples/tutorial/Functionality_Overview
+   examples/tutorial/CIFAR10_Low_Precision_Training_Example
 
 .. toctree::
    :maxdepth: 1

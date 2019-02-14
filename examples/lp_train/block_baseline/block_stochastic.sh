@@ -1,17 +1,16 @@
 python train.py --dataset CIFAR10 \
        --data_path ./data \
-       --model VGG16 \
+       --model VGG16LP \
        --epochs=200 \
        --lr_init=0.05 \
        --wd=5e-4 \
-       --name example \
+       --seed 100 \
+       --batch_size 128  \
        --wl-weight 8 \
        --wl-grad 8 \
        --wl-momentum 8 \
        --wl-activate 8 \
        --wl-error 8 \
-       --seed 100 \
-       --batch_size 128  \
        --weight-rounding stochastic \
        --activate-rounding stochastic \
        --grad-rounding stochastic \
@@ -21,5 +20,4 @@ python train.py --dataset CIFAR10 \
        --activate-type block \
        --grad-type block \
        --error-type block \
-       --momentum-type block \
-       --auto_low;
+       --momentum-type block;

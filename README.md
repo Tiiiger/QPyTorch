@@ -32,11 +32,11 @@ pip install qtorch
 See our [read the docs](www.google.com)
 
 ## Tutorials
-- [An overview of QPyTorch's features](https://github.com/Tiiiger/QPyTorch/blob/master/examples/Functionality_Overview.ipynb)
-- [CIFAR-10 Low-Precision Training Tutorial](https://github.com/Tiiiger/QPyTorch/blob/master/examples/CIFAR10_Low_Precision_Training_Example.ipynb)
+- [An overview of QPyTorch's features](https://github.com/Tiiiger/QPyTorch/blob/master/examples/tutorial/Functionality_Overview.ipynb)
+- [CIFAR-10 Low-Precision Training Tutorial](https://github.com/Tiiiger/QPyTorch/blob/master/examples/tutorial/CIFAR10_Low_Precision_Training_Example.ipynb)
 
 ## Examples
-- Low-Precision VGGs and ResNets using fixed point, block floating point. [Examples](https://github.com/Tiiiger/QPyTorch/blob/master/examples)
+- Low-Precision VGGs and ResNets using fixed point, block floating point on CIFAR and ImageNet. [lp_train](https://github.com/Tiiiger/QPyTorch/blob/master/examples/lp_train)
 - Reproduction of WAGE in QPyTorch. [WAGE.qpytorch](https://github.com/Tiiiger/QPyTorch/blob/master/examples)
 - Reproduction of 8-bit Floating Point Training in QPyTorch. [IBM8.qpytorch](https://github.com/Tiiiger/QPyTorch/blob/master/examples)
 
