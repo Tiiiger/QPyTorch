@@ -1,0 +1,28 @@
+python train.py --dataset CIFAR10 \
+       --data_path ./data \
+       --model VGG16LP \
+       --epochs=200 \
+       --lr_init=0.05 \
+       --wd=5e-4 \
+       --seed 100 \
+       --batch_size 128  \
+       --weight-exp 8 \
+       --grad-exp 8 \
+       --momentum-exp 8 \
+       --activate-exp 8 \
+       --error-exp 8 \
+       --weight-man 7 \
+       --grad-man 7 \
+       --momentum-man 7 \
+       --activate-man 7 \
+       --error-man 7 \
+       --weight-rounding stochastic \
+       --activate-rounding stochastic \
+       --grad-rounding stochastic \
+       --error-rounding stochastic \
+       --momentum-rounding stochastic \
+       --weight-type float \
+       --activate-type float \
+       --grad-type float \
+       --error-type float \
+       --momentum-type float;
