@@ -26,7 +26,7 @@ bash sample_scripts/float_baseline/bfloat_baseline.sh
 ```
 
 ## File Structure
-`train.py` contains the high-level training code and usage of QPyTorch
-`utils.py` contains useful helpers that can be shared with low-precision and full-precision training
-`data.py` defines datasets
-`models/` contains model definitions. `*_low.py` are the low-precision model counterparts.
+- `train.py` contains the high-level training code and usage of QPyTorch
+- `utils.py` contains useful helpers that can be shared with low-precision and full-precision training
+- `data.py` defines datasets
+- `models/` contains model definitions. `*_low.py` are the low-precision model counterparts.
