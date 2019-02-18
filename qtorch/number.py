@@ -52,7 +52,8 @@ class FloatingPoint(Number):
 
     Args:
         - :attr: `exp`: number of bits allocated for exponent
-        - :attr: `man`: number of bits allocated for mantissa, not counting the virtual bits
+        - :attr: `man`: number of bits allocated for mantissa, referring to number of bits that are
+                        supposed to be stored on hardware (not counting the virtual bits).
     """
     def __init__(self, exp, man):
         assert 8 >= exp > 0, "invalid bits for exponent:{}".format(exp)
