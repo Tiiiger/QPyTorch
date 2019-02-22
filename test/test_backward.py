@@ -76,7 +76,6 @@ class TestBackward(unittest.TestCase):
 
         x = torch.linspace(-2, 2, steps=10, device='cpu', requires_grad=True)
         x.sum().backward()
-        print(x.grad)
 
         y = torch.linspace(-2, 2, steps=10, device='cpu', requires_grad=True)
         oracle(y).sum().backward()

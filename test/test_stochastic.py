@@ -7,44 +7,46 @@ class TestStochastic(unittest.TestCase):
     """
     invariant: stochastic rounding is unbiased
     """
-    def calc_expectation(self, a, quant):
+    def calc_expectation_error(self, a, quant, N):
         b = torch.zeros_like(a)
-        num_of_trails = int(1e5)
-        for i in range(num_of_trails):
+        for i in range(int(N)):
             b = b * i/(i+1.) + quant(a) / (i+1)
-        return b
+        error = ((a-b)**2).mean().cpu().item()
+        return error
 
     def test_stochastic_fixed(self):
-        for d in ['cpu', 'cuda']:
-            number = FixedPoint(wl=5, fl=4)
-            a = torch.linspace(- 2 ** (number.wl-number.fl-1), 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl), steps=100, device=d)
-            quant = quantizer(forward_number=number, forward_rounding='stochastic')
-            exp_a = self.calc_expectation(a, quant)
-            self.assertTrue(((a-exp_a)**2).mean()<1e-8)
-
-            number = FixedPoint(wl=5, fl=4, clamp=True)
-            a = torch.linspace(- 2 ** (number.wl-number.fl-1), 2 ** (number.wl-number.fl-1) - 2 ** (-number.fl), steps=100, device=d)
-            quant = quantizer(forward_number=number, forward_rounding='stochastic', clamping_grad_zero=True)
-            exp_a = self.calc_expectation(a, quant)
-            self.assertTrue(((a-exp_a)**2).mean().item() <1e-8)
+        for wl, fl in [(7,6)]:
+            for d in ['cpu', 'cuda']:
+                a = torch.linspace(-0.9, 0.9, steps=100, device=d)
+                quant = lambda x : fixed_point_quantize(x, wl=wl, fl=fl, clamp=True, symmetric=False)
+                error = self.calc_expectation_error(a, quant, 1e5)
+                self.assertTrue(error<1e-6)
+                number = FixedPoint(wl=wl, fl=fl, clamp=True, symmetric=False)
+                quant = quantizer(forward_number=number, forward_rounding="stochastic")
+                error = self.calc_expectation_error(a, quant, 1e5)
+                self.assertTrue(error<1e-6)
 
     def test_stochastic_block(self):
         for d in ['cpu', 'cuda']:
-            number = BlockFloatingPoint(wl=6)
-            a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
-            quant = quantizer(forward_number=number, forward_rounding='stochastic')
-            exp_a = self.calc_expectation(a, quant)
-            diff = ((a-exp_a)**2).mean().item()
-            self.assertTrue((diff < 1e-8))
+            a = torch.linspace(-0.9, 0.9, steps=100, device=d)
+            quant = lambda x : block_quantize(x, wl=5)
+            error = self.calc_expectation_error(a, quant, 1e5)
+            self.assertTrue((error < 1e-6))
+            number = BlockFloatingPoint(wl=5)
+            quant = quantizer(forward_number=number, forward_rounding="stochastic")
+            error = self.calc_expectation_error(a, quant, 1e5)
+            self.assertTrue(error<1e-6)
 
     def test_stochastic_float(self):
         for d in ['cpu', 'cuda']:
-            number = FloatingPoint(exp=5, man=3)
-            a = torch.linspace(-0.9, 0.9, steps=100, device='cuda')
-            quant = quantizer(forward_number=number, forward_rounding='stochastic')
-            exp_a = self.calc_expectation(a, quant)
-            diff = ((a-exp_a)**2).mean().item()
-            self.assertTrue(diff < 1e-8)
+            a = torch.rand(100).to(device=d)
+            quant = lambda x : float_quantize(x, exp=6, man=5)
+            error = self.calc_expectation_error(a, quant, 1e5)
+            self.assertTrue((error < 1e-6))
+            number = FloatingPoint(exp=6, man=5)
+            quant = quantizer(forward_number=number, forward_rounding="stochastic")
+            error = self.calc_expectation_error(a, quant, 1e5)
+            self.assertTrue(error<1e-6)
 
 if __name__ == "__main__":
     unittest.main()

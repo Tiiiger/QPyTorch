@@ -8,17 +8,17 @@ class TestQuant(unittest.TestCase):
     random test on the behavior of nearest fixed point rounding
     """
     def test_fixed_random(self):
-        S = lambda bits :  2.**(bits-1)
+        S = lambda bits :  2**(bits)
         Q = lambda x, bits : torch.round(x*S(bits))/S(bits)
         wl = 8
-        number = FixedPoint(wl=wl, fl=wl-1, clamp=False)
-        quant = lambda x : fixed_point_quantize(x, number, "nearest")
+        quant = lambda x : fixed_point_quantize(x, wl=wl, fl=wl, clamp=False, rounding="nearest")
 
-        x = torch.randn(int(1e8), device='cuda')
+        N = int(1e8)
+        x = torch.randn(N, device='cuda')
         oracle = Q(x, wl)
         target = quant(x)
-        mask = torch.eq(oracle, target)
-        print((1-mask).sum())
+        matched = torch.eq(oracle, target).all().item()
+        self.assertTrue(matched)
 
 if __name__ == "__main__":
     unittest.main()
