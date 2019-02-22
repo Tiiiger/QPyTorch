@@ -1,9 +1,0 @@
-[submodule "WAGE.pytorch"]
-	path = example/WAGE.pytorch
-	url = https://github.com/Tiiiger/WAGE.pytorch.git
-[submodule "example/IBM8.pytorch"]
-	path = example/IBM8.pytorch
-	url = https://github.com/Tiiiger/IBM8.pytorch.git
-[submodule "examples/WAGE.pytorch"]
-	path = examples/WAGE.pytorch
-	url = https://github.com/Tiiiger/WAGE.pytorch

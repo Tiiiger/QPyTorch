@@ -4,6 +4,8 @@ qtorch/demo*
 qtorch/*ipynb*
 **/*/__pycache__
 **/*/build
+**/checkpoint
+**/runs
 **/*/*.egg-info
 **/*/*.so
 example/runs
