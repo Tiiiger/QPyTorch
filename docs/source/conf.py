@@ -69,7 +69,7 @@ examples_dest = os.path.abspath(os.path.join(os.path.dirname(__file__), "example
 
 if os.path.exists(examples_dest):
     shutil.rmtree(examples_dest)
-os.mkdir(examples_dest)
+os.makedirs(examples_dest)
 
 for root, dirs, files in os.walk(examples_source):
     for dr in dirs:
