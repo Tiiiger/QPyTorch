@@ -8,23 +8,26 @@ class OptimLP(Optimizer):
     A low-precision optimizer wrapper that handles weight, gradient, accumulator quantization.
 
     Args:
+        - :attr: `optim`: underlying optimizer to use
         - :attr: `weight_quant`: a weight quantization function which takes a pytorch tensor and returns a tensor. If None, does not quantize weight.
         - :attr: `grad_quant`: a gradient quantization function which takes a pytorch tensor and returns a tensor. If None, does not quantize weight.
+        - :attr: `grad_scaling`: float, scaling factor before apply gradient quantization.
         - :attr: `momentum_quant`: a momentum quantization function which takes a pytorch tensor and returns a tensor.
                                    If None, does not quantize weight.
-        - :attr: `accumulator_quant`: a accumulator quantization function which takes
-                                  a pytorch tensor and returns a tensor. If not None, a
-                                  OptimLP object would create memory copies of model parameters that serve as
-                                  gradient accumulators. If None, does not use gradient accumulators.
+        - :attr: `acc_quant`: a accumulator quantization function which takes
+                              a pytorch tensor and returns a tensor. If not None, a
+                              OptimLP object would create memory copies of model parameters that serve as
+                              gradient accumulators. If None, does not use gradient accumulators.
 
     Example:
+        >>> weight_q = quantizer(...) # define weight quantization
         >>> optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
-        >>> optimizer = OptimLP(optiimizer)
+        >>> optimizer = OptimLP(optiimizer, weight_quant=weight_q)
     """
 
     def __init__(self, optim,
-                 grad_scaling=1,
                  weight_quant=None,
+                 grad_scaling=1.0,
                  grad_quant=None,
                  momentum_quant=None,
                  acc_quant=None):
@@ -98,3 +101,9 @@ class OptimLP(Optimizer):
                         param_state[key] = self.momentum_quant(param_state[key])
 
         return loss
+
+    def __repr__(self):
+        return "LP Optimizer: {}".format(self.optim.__repr__())
+
+    def __str__(self):
+        return "LP Optimizer: {}".format(self.optim.__str__())
