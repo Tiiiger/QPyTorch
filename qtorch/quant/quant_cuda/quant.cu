@@ -11,12 +11,28 @@
 
 using namespace at;
 
-Tensor block_quantize_stochastic_cuda(Tensor a, int wl) {
+Tensor get_max_entry(Tensor a, int dim) {
+  Tensor max_entry;
+  if (dim == -1) {
+    max_entry = at::max(at::abs(a)).expand_as(a).contiguous();
+  } else if (dim == 0) {
+    Tensor input_view = a.view({a.size(0), -1});
+    max_entry = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(a).contiguous();
+  } else {
+    Tensor input_transpose = a.transpose(0, dim);
+    Tensor input_view = input_transpose.contiguous().view({input_transpose.size(0), -1});
+    Tensor max_transpose = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(input_transpose);
+    max_entry = max_transpose.transpose(dim, 0).contiguous();
+  }
+  return max_entry;
+}
+
+Tensor block_quantize_stochastic_cuda(Tensor a, int wl, int dim) {
   auto o = at::zeros_like(a);
   auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
   int64_t size = a.numel();
 
-  Tensor max_entry = at::max(at::abs(a));
+  Tensor max_entry = get_max_entry(a, dim);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
@@ -29,11 +45,11 @@ Tensor block_quantize_stochastic_cuda(Tensor a, int wl) {
   return o;
 }
 
-Tensor block_quantize_nearest_cuda(Tensor a, int wl) {
+Tensor block_quantize_nearest_cuda(Tensor a, int wl, int dim) {
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
 
-  Tensor max_entry = at::max(at::abs(a));
+  Tensor max_entry = get_max_entry(a, dim);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 

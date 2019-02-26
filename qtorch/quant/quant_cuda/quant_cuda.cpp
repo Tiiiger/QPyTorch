@@ -19,9 +19,9 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, i
   return fixed_point_quantize_nearest_mask_cuda(a, wl, fl, symmetric);
 }
 
-Tensor block_quantize_nearest(Tensor a, int wl) {
+Tensor block_quantize_nearest(Tensor a, int wl, int dim) {
   CHECK_INPUT(a);
-  return block_quantize_nearest_cuda(a, wl);
+  return block_quantize_nearest_cuda(a, wl, dim);
 }
 
 Tensor block_quantize_sim_nearest(Tensor a, int wl) {
@@ -45,9 +45,9 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
   return fixed_point_quantize_stochastic_mask_cuda(a, wl, fl, symmetric);
 }
 
-Tensor block_quantize_stochastic(Tensor a, int wl) {
+Tensor block_quantize_stochastic(Tensor a, int wl, int dim) {
   CHECK_INPUT(a);
-  return block_quantize_stochastic_cuda(a, wl);
+  return block_quantize_stochastic_cuda(a, wl, dim);
 }
 
 Tensor block_quantize_sim_stochastic(Tensor a, int wl) {

@@ -40,14 +40,14 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask_cuda(Tensor a, int 
  * and fractional bits [fl]
  * Stochastic Rounding.
  **/
-Tensor block_quantize_stochastic_cuda(Tensor a, int wl);
+Tensor block_quantize_stochastic_cuda(Tensor a, int wl, int dim);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
  * and fractional bits [fl]
  * Nearest Rounding.
  **/
-Tensor block_quantize_nearest_cuda(Tensor a, int wl);
+Tensor block_quantize_nearest_cuda(Tensor a, int wl, int dim);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]

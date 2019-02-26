@@ -7,11 +7,11 @@
 __global__ void block_kernel_stochastic(float* __restrict__ a,
                                         int* __restrict__ r,
                                         float* o, int size,
-                                        float* max_entry,
+                                        float* __restrict__ max_entry,
                                         int man_bits) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    unsigned int max_entry_bits = FLOAT_TO_BITS(max_entry);
+    unsigned int max_entry_bits = FLOAT_TO_BITS(&max_entry[index]);
     unsigned int max_exp = max_entry_bits << 1 >> 24 << 23;
     float base_float = 6*BITS_TO_FLOAT(&max_exp);
 
@@ -28,11 +28,11 @@ __global__ void block_kernel_stochastic(float* __restrict__ a,
 // [man_bits] mantissa
 __global__ void block_kernel_nearest(float* __restrict__ a,
                                      float* o, int size,
-                                     float* max_entry,
+                                     float* __restrict__ max_entry,
                                      int man_bits) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < size) {
-    unsigned int max_entry_bits = FLOAT_TO_BITS(max_entry);
+    unsigned int max_entry_bits = FLOAT_TO_BITS(&max_entry[index]);
     unsigned int max_exp = max_entry_bits << 1 >> 24 << 23;
     float base_float = 6*BITS_TO_FLOAT(&max_exp);
 

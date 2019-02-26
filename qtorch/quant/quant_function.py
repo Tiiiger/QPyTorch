@@ -199,7 +199,7 @@ def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stoch
         out = quant_module.fixed_point_quantize_stochastic(x.contiguous(), wl, fl, clamp, symmetric)
     return out
 
-def block_quantize(x, wl, rounding="stochastic"):
+def block_quantize(x, wl, dim=-1, rounding="stochastic"):
     """
     Quantize a single precision Floating Point into low-precision Block Floating Point
 
@@ -215,9 +215,9 @@ def block_quantize(x, wl, rounding="stochastic"):
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding=="nearest":
-        out = quant_module.block_quantize_nearest(x.contiguous(), wl)
+        out = quant_module.block_quantize_nearest(x.contiguous(), wl, dim)
     elif rounding=="stochastic":
-        out = quant_module.block_quantize_stochastic(x.contiguous(), wl)
+        out = quant_module.block_quantize_stochastic(x.contiguous(), wl, dim)
     return out
 
 def float_quantize(x, exp, man, rounding="stochastic"):
