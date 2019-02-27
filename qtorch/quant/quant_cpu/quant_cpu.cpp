@@ -130,16 +130,17 @@ unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding){
   return quantized;
 }
 
-void block_quantize_helper(float* input, float* output, float max_elem,
+void block_quantize_helper(float* input, float* output, float* max_elem,
                            int wl, int size, Mode rounding) {
-  unsigned int max_num;
-  FLOAT_TO_BITS(max_elem, max_num);
-  unsigned int max_exp = max_num << 1 >> 24 << 23;
-  float base_float;
-  BITS_TO_FLOAT(max_exp, base_float);
-  base_float *= 6;
-
   for (int64_t i=0; i < size; i++) {
+
+    unsigned int max_num;
+    FLOAT_TO_BITS(max_elem[i], max_num);
+    unsigned int max_exp = max_num << 1 >> 24 << 23;
+    float base_float;
+    BITS_TO_FLOAT(max_exp, base_float);
+    base_float *= 6;
+
     float target_rebase = input[i]+base_float;
     unsigned int target_bits;
     FLOAT_TO_BITS(target_rebase, target_bits);
@@ -151,7 +152,23 @@ void block_quantize_helper(float* input, float* output, float max_elem,
   }
 }
 
-Tensor block_quantize_nearest(Tensor a, int wl) {
+Tensor get_max_entry(Tensor a, int dim) {
+  Tensor max_entry;
+  if (dim == -1) {
+    max_entry = at::max(at::abs(a)).expand_as(a).contiguous();
+  } else if (dim == 0) {
+    Tensor input_view = a.view({a.size(0), -1});
+    max_entry = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(a).contiguous();
+  } else {
+    Tensor input_transpose = a.transpose(0, dim);
+    Tensor input_view = input_transpose.contiguous().view({input_transpose.size(0), -1});
+    Tensor max_transpose = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(input_transpose);
+    max_entry = max_transpose.transpose(dim, 0).contiguous();
+  }
+  return max_entry;
+}
+
+Tensor block_quantize_nearest(Tensor a, int wl, int dim) {
   CHECK_INPUT(a);
   auto a_array = a.data<float>();
   Tensor o = zeros_like(a);
@@ -159,13 +176,13 @@ Tensor block_quantize_nearest(Tensor a, int wl) {
   int64_t size = a.numel();
 
   // get maximum number and base
-  Tensor max_entry = at::max(at::abs(a));
+  Tensor max_entry = get_max_entry(a, dim);
   auto max_elem = max_entry.data<float>();
-  block_quantize_helper(a_array, o_array, *max_elem, wl, size, rNearest);
+  block_quantize_helper(a_array, o_array, max_elem, wl, size, rNearest);
   return o;
 }
 
-Tensor block_quantize_stochastic(Tensor a, int wl) {
+Tensor block_quantize_stochastic(Tensor a, int wl, int dim) {
   CHECK_INPUT(a);
   auto a_array = a.data<float>();
   Tensor o = zeros_like(a);
@@ -173,10 +190,10 @@ Tensor block_quantize_stochastic(Tensor a, int wl) {
   int64_t size = a.numel();
 
   // get maximum number and base
-  Tensor max_entry = at::max(at::abs(a));
+  Tensor max_entry = get_max_entry(a, dim);
   auto max_elem = max_entry.data<float>();
   // std::srand(time(0));
-  block_quantize_helper(a_array, o_array, *max_elem, wl, size, rStochastic);
+  block_quantize_helper(a_array, o_array, max_elem, wl, size, rStochastic);
   return o;
 }
 
