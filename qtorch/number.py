@@ -106,9 +106,11 @@ class BlockFloatingPoint(Number):
     Args:
         - :attr: `wl` word length of the tensor
     """
-    def __init__(self, wl):
-        assert wl > 0, "invalid bits for word length:{}".format(wl)
+    def __init__(self, wl, dim=-1):
+        assert wl > 0 and isinstance(wl, int), "invalid bits for word length:{}".format(wl)
+        assert dim >= -1 and isinstance(dim, int), "invalid dimension"
         self.wl = wl
+        self.dim = dim
 
     def __str__(self):
         return "BlockFloatingPoint (wl={:d})".format(self.wl)

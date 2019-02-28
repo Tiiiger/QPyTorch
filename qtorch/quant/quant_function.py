@@ -74,7 +74,7 @@ def quantizer(forward_number=None, backward_number=None,
     if clamping_grad_zero==False:
         if forward_rounding=="nearest":
             if type(forward_number)==BlockFloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(x, forward_number.wl)
+                forward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(x, forward_number.wl, forward_number.dim)
             elif type(forward_number)==FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(x, forward_number.wl,
                                                                                                   forward_number.fl, forward_number.clamp,
@@ -83,7 +83,7 @@ def quantizer(forward_number=None, backward_number=None,
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(x, forward_number.man, forward_number.exp)
         elif forward_rounding=="stochastic":
             if type(forward_number)==BlockFloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(x, forward_number.wl)
+                forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(x, forward_number.wl, forward_number.dim)
             elif type(forward_number)==FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(x, forward_number.wl, forward_number.fl,
                                                                                                      forward_number.clamp, forward_number.symmetric)
@@ -101,7 +101,7 @@ def quantizer(forward_number=None, backward_number=None,
 
     if backward_rounding=="nearest":
         if type(backward_number)==BlockFloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.block_quantize_nearest(a, backward_number.wl)
+            backward_quant = lambda a, quant_module: quant_module.block_quantize_nearest(a, backward_number.wl, backward_number.dim)
         elif type(backward_number)==FixedPoint:
             backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_nearest(a, backward_number.wl, backward_number.fl,
                                                                                                backward_number.clamp, backward_number.symmetric)
@@ -109,7 +109,7 @@ def quantizer(forward_number=None, backward_number=None,
             backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(a, backward_number.man, backward_number.exp)
     elif backward_rounding=="stochastic":
         if type(backward_number)==BlockFloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(a, backward_number.wl)
+            backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(a, backward_number.wl, backward_number.dim)
         elif type(backward_number)==FixedPoint:
             backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_stochastic(a, backward_number.wl, backward_number.fl,
                                                                                                   backward_number.clamp, backward_number.symmetric)
