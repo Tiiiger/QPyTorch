@@ -10,7 +10,8 @@ qtorch/*ipynb*
 **/*/*.so
 example/runs
 example/data
-example/cifar10
+**/cifar10
+**/cifar100
 example/checkpoint
 playground/build
 build
