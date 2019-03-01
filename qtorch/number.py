@@ -101,10 +101,12 @@ class BlockFloatingPoint(Number):
     BlockFloatingPoint shares an exponent across a block of numbers. The shared exponent is chosen from
     the largest magnitude in the block.
 
-    Currently our implementation only supports treating the entire input tensor as a block.
-
     Args:
         - :attr: `wl` word length of the tensor
+        - :attr: `dim` block dimension to share exponent. (*, D, *) Tensor where
+          D is at position `dim` will have D different exponents; use -1 if the
+          entire tensor is treated as a single block (there is only 1 shared
+          exponent).
     """
     def __init__(self, wl, dim=-1):
         assert wl > 0 and isinstance(wl, int), "invalid bits for word length:{}".format(wl)
@@ -113,7 +115,7 @@ class BlockFloatingPoint(Number):
         self.dim = dim
 
     def __str__(self):
-        return "BlockFloatingPoint (wl={:d})".format(self.wl)
+        return "BlockFloatingPoint (wl={:d}, dim={:d})".format(self.wl, self.dim)
 
     def __repr__(self):
-        return "BlockFloatingPoint (wl={:d})".format(self.wl)
+        return "BlockFloatingPoint (wl={:d}, dim={:d})".format(self.wl, self.dim)
