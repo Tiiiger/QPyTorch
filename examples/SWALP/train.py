@@ -74,16 +74,19 @@ swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg
 swa_model.swa_n = 0
 swa_model.cuda()
 
-def schedule(epoch):
-    t = (epoch) / args.epochs
-    lr_ratio = 0.01
-    if t <= 0.5:
-        factor = 1.0
-    elif t <= 0.9:
-        factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+def schedule(epoch, swa_start=args.swa_start, swa_lr=args.swa_lr):
+    if epoch < swa_start:
+        t = (epoch) / args.epochs
+        lr_ratio = 0.01
+        if t <= 0.5:
+            factor = 1.0
+        elif t <= 0.9:
+            factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+        else:
+            factor = lr_ratio
+        return args.lr_init * factor
     else:
-        factor = lr_ratio
-    return args.lr_init * factor
+        return swa_lr
 
 criterion = F.cross_entropy
 optimizer = SGD( model.parameters(),
