@@ -20,3 +20,4 @@ dist
 **/.ipynb_checkpoints
 **/data
 docs/source/examples
+playground/
