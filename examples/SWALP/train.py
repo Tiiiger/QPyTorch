@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import utils
 import tabulate
-import models
+import vgg
 import data
 from qtorch.quant import *
 from qtorch.optim import OptimLP
@@ -63,20 +63,20 @@ acc_err_quant = lambda : Quantizer(number_dict["activate"], number_dict["error"]
 
 # Build model
 print('Base Model: {}'.format(args.model))
-model_cfg = getattr(models, args.model)
+model_cfg = getattr(vgg, args.model)
 model_cfg.kwargs.update({"quant":acc_err_quant})
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 
 # Build SWALP model
-swa_model_cfg = getattr(models, args.model[:-2])
+model_cfg.kwargs.update({"quant":None}) # use full precision model
 swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 swa_model.swa_n = 0
 swa_model.cuda()
 
-def schedule(epoch, swa_start=args.swa_start, swa_lr=args.swa_lr):
+def schedule(epoch, lr_init=args.lr_init, swa_start=args.swa_start, swa_lr=args.swa_lr):
     if epoch < swa_start:
-        t = (epoch) / args.epochs
+        t = (epoch) / swa_start
         lr_ratio = 0.01
         if t <= 0.5:
             factor = 1.0
@@ -84,7 +84,7 @@ def schedule(epoch, swa_start=args.swa_start, swa_lr=args.swa_lr):
             factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
         else:
             factor = lr_ratio
-        return args.lr_init * factor
+        return lr_init * factor
     else:
         return swa_lr
 
@@ -99,7 +99,7 @@ optimizer = OptimLP(optimizer,
                     momentum_quant=quant_dict["momentum"])
 
 # Prepare logging
-columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_loss', 'te_acc', 'swa_te_loss', 'swa_te']
+columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'tr_time', 'te_loss', 'te_acc', 'swa_te_loss', 'swa_te']
 
 for epoch in range(args.epochs):
     lr = schedule(epoch)

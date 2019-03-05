@@ -1,6 +1,7 @@
 import os
 import torch
 import tabulate
+from time import perf_counter
 
 def set_seed(seed, cuda):
     torch.backends.cudnn.enabled = True
@@ -25,6 +26,7 @@ def run_epoch(loader, model, criterion, optimizer=None,
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     ttl = 0
+    start = perf_counter()
     with torch.autograd.set_grad_enabled(phase=="train"):
         for i, (input, target) in enumerate(loader):
             input = input.to(device=device)
@@ -42,11 +44,16 @@ def run_epoch(loader, model, criterion, optimizer=None,
                 loss.backward()
                 optimizer.step()
 
+    elapse = perf_counter()-start
     correct = correct.cpu().item()
-    return {
+    res = {
         'loss': loss_sum / float(ttl),
         'accuracy': correct / float(ttl) * 100.0,
     }
+    if phase == "train":
+        res["train time"] = elapse
+
+    return res
 
 def moving_average(net1, net2, alpha=1):
     for param1, param2 in zip(net1.parameters(), net2.parameters()):
