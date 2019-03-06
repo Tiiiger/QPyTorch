@@ -20,6 +20,10 @@ __global__ void block_kernel_stochastic(float* __restrict__ a,
     unsigned int rand_prob = (unsigned int) r[index];
     unsigned int quantized = round_bitwise_stochastic(target_bits, rand_prob, man_bits);
     float quantize_float = BITS_TO_FLOAT(&quantized)-base_float;
+
+    unsigned int quantize_bits = FLOAT_TO_BITS(&quantize_float) ;
+    unsigned int clip_quantize = clip_max_exponent(man_bits-2, max_exp, quantize_bits);
+    quantize_float = BITS_TO_FLOAT(&clip_quantize);
     o[index] = quantize_float;
   }
 }
@@ -40,6 +44,11 @@ __global__ void block_kernel_nearest(float* __restrict__ a,
     unsigned int target_bits = FLOAT_TO_BITS(&target_rebase);
     unsigned int quantized = round_bitwise_nearest(target_bits, man_bits);
     float quantize_float = BITS_TO_FLOAT(&quantized)-base_float;
+
+    unsigned int quantize_bits = FLOAT_TO_BITS(&quantize_float); 
+    unsigned int clip_quantize = clip_max_exponent(man_bits-2, max_exp, quantize_bits); // sign bit, virtual bit
+    quantize_float = BITS_TO_FLOAT(&clip_quantize);
+
     o[index] = quantize_float;
   }
 }

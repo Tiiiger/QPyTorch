@@ -148,6 +148,12 @@ void block_quantize_helper(float* input, float* output, float* max_elem,
     float quantized_rebase;
     BITS_TO_FLOAT(quantized_bits, quantized_rebase);
     float quantized = quantized_rebase-base_float;
+
+    unsigned int quantize_bits;
+    FLOAT_TO_BITS(quantized, quantize_bits);
+    unsigned int clip_quantize = clip_max_exponent(wl-2, max_exp, quantize_bits);
+    BITS_TO_FLOAT(clip_quantize, quantized);
+
     output[i] = quantized;
   }
 }

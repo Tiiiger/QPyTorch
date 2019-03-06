@@ -21,6 +21,18 @@ unsigned int clip_exponent(int exp_bits, int man_bits,
   return quantized_num;
 }
 
+unsigned int clip_max_exponent(int man_bits,
+                               unsigned int max_exponent,
+                               unsigned int quantized_num) {
+  unsigned int quantized_exponent = quantized_num << 1 >> 24 << 23; // 1 sign bit, 23 mantissa bits
+  if (quantized_exponent > max_exponent) {
+    unsigned int max_man = (unsigned int ) -1 << 9 >> 9 >> (23-man_bits) << (23-man_bits); // 1 sign bit, 8 exponent bits
+    unsigned int max_num = max_exponent | max_man;
+    unsigned int old_sign = quantized_num >> 31 << 31;
+    quantized_num = old_sign | max_num;
+  }
+  return quantized_num;
+}
 // unsigned int extract_exponent(float *a) {
 //   unsigned int temp = *(reinterpret_cast<unsigned int*>(a));
 //   temp = (temp << 1 >> 24); // single precision, 1 sign bit, 23 mantissa bits
