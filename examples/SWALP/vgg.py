@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 __all__ = ['VGG16', 'VGG16BN', 'VGG19', 'VGG19BN']
 
 
-def make_layers(cfg, quant, batch_norm=False):
+def make_layers(cfg, batch_norm=False):
     layers = list()
     in_channels = 3
     n = 1
@@ -25,17 +25,14 @@ def make_layers(cfg, quant, batch_norm=False):
                 layers += [conv2d, nn.BatchNorm2d(filters), nn.ReLU(inplace=True)]
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
-            if quant != None: layers += [quant()]
             n += 1
             in_channels = filters
     return nn.Sequential(*layers)
 
-def make_cls(num_class, hidden_dim, quant):
+def make_cls(hidden_dim):
     layers = []
     for i in range(2):
-        layers += [nn.Dropout(), nn.Linear(hidden_dim, hidden_dim)]
-        if quant != None: layers.append(quant())
-    layers.append(nn.Linear(hidden_dim, num_class))
+        layers += [nn.Dropout(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU(inplace=True)]
     return nn.Sequential(*layers)
 
 cfg = {
@@ -45,17 +42,23 @@ cfg = {
 }
 
 class VGG(nn.Module):
-    def __init__(self, quant=None, num_classes=10, depth=16, batch_norm=False):
+    def __init__(self, num_classes=10, depth=16, batch_norm=False):
 
         super(VGG, self).__init__()
-        self.features = make_layers(cfg[depth], quant, batch_norm)
-        self.classifier = make_cls(num_classes, 512, quant)
+        self.features = make_layers(cfg[depth], batch_norm)
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(True),
+            nn.Linear(512, num_classes),
+        )
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 kaiming_normal_(m.weight)
                 m.bias.data.zero_()
-                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                # m.weight.data.normal_(0, math.sqrt(2. / n))
 
     def forward(self, x):
         x = self.features(x)

@@ -10,6 +10,8 @@ from qtorch.quant import *
 from qtorch.optim import OptimLP
 from torch.optim import SGD
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
+from qtorch.auto_low import sequential_lower
+import torchvision.models as models
 
 num_types = ["weight", "activate", "grad", "error", "momentum"]
 
@@ -32,7 +34,7 @@ parser.add_argument('--lr_init', type=float, default=0.05, metavar='LR',
                     help='initial learning rate (default: 0.01)')
 parser.add_argument('--wd', type=float, default=1e-4,
                     help='weight decay (default: 1e-4)')
-parser.add_argument('--seed', type=int, default=200, metavar='N',
+parser.add_argument('--seed', type=int, default=1, metavar='N',
                     help='random seed (default: 1)')
 for num in num_types:
     parser.add_argument('--wl-{}'.format(num), type=int, default=-1, metavar='N',
@@ -58,18 +60,20 @@ quant_dict = dict()
 for num in ["weight", "momentum", "grad"]:
     quant_dict[num] = quantizer(forward_number=number_dict[num],
                                 forward_rounding=args.rounding)
-acc_err_quant = lambda : Quantizer(number_dict["activate"], number_dict["error"],
-                                   args.rounding, args.rounding)
 
 # Build model
 print('Base Model: {}'.format(args.model))
 model_cfg = getattr(vgg, args.model)
-model_cfg.kwargs.update({"quant":acc_err_quant})
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
+
+# automatically insert quantization modules
+model = sequential_lower(model, layer_types=["conv", "linear"],
+                         forward_number=number_dict["activate"], backward_number=number_dict["error"],
+                         forward_rounding=args.rounding, backward_rounding=args.rounding)
+model.classifier[-1] = model.classifier[-1][0] # removing the final quantization module
 model.cuda()
 
 # Build SWALP model
-model_cfg.kwargs.update({"quant":None}) # use full precision model
 swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 swa_model.swa_n = 0
 swa_model.cuda()
@@ -89,10 +93,11 @@ def schedule(epoch, lr_init=args.lr_init, swa_start=args.swa_start, swa_lr=args.
         return swa_lr
 
 criterion = F.cross_entropy
-optimizer = SGD( model.parameters(),
-                 lr=args.lr_init,
-                 momentum=0.9,
-                 weight_decay=args.wd)
+optimizer = SGD(model.parameters(),
+                lr=args.lr_init,
+                momentum=0.9,
+                weight_decay=args.wd)
+# insert quantizations into the optimization loops
 optimizer = OptimLP(optimizer,
                     weight_quant=quant_dict["weight"],
                     grad_quant=quant_dict["grad"],
