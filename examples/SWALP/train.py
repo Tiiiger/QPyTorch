@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import utils
 import tabulate
 import vgg
-import data
 from qtorch.quant import *
 from qtorch.optim import OptimLP
 from torch.optim import SGD
@@ -47,8 +46,8 @@ args = parser.parse_args()
 args.cuda = torch.cuda.is_available()
 utils.set_seed(args.seed, args.cuda)
 
-loaders = data.get_data(args.dataset, args.data_path, args.batch_size, num_workers=8)
-num_classes = data.num_classes_dict[args.dataset]
+loaders = utils.get_data(args.dataset, args.data_path, args.batch_size, num_workers=8)
+num_classes = utils.num_classes_dict[args.dataset]
 
 # prepare quantization functions
 number_dict = dict()
