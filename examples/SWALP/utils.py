@@ -11,6 +11,20 @@ def set_seed(seed, cuda):
     torch.manual_seed(seed)
     if cuda: torch.cuda.manual_seed(seed)
 
+def schedule(epoch, lr_init=args.lr_init, swa_start=args.swa_start, swa_lr=args.swa_lr):
+    if epoch < swa_start:
+        t = (epoch) / swa_start
+        lr_ratio = 0.01
+        if t <= 0.5:
+            factor = 1.0
+        elif t <= 0.9:
+            factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+        else:
+            factor = lr_ratio
+        return lr_init * factor
+    else:
+        return swa_lr
+
 def adjust_learning_rate(optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr

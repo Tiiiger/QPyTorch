@@ -50,6 +50,7 @@ loaders = utils.get_data(args.dataset, args.data_path, args.batch_size, num_work
 num_classes = utils.num_classes_dict[args.dataset]
 
 # prepare quantization functions
+# using block floating point, allocating shared exponent along the first dimension
 number_dict = dict()
 for num in num_types:
     num_wl = getattr(args, "wl_{}".format(num))
@@ -77,20 +78,6 @@ swa_model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg
 swa_model.swa_n = 0
 swa_model.cuda()
 
-def schedule(epoch, lr_init=args.lr_init, swa_start=args.swa_start, swa_lr=args.swa_lr):
-    if epoch < swa_start:
-        t = (epoch) / swa_start
-        lr_ratio = 0.01
-        if t <= 0.5:
-            factor = 1.0
-        elif t <= 0.9:
-            factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
-        else:
-            factor = lr_ratio
-        return lr_init * factor
-    else:
-        return swa_lr
-
 criterion = F.cross_entropy
 optimizer = SGD(model.parameters(),
                 lr=args.lr_init,
@@ -106,7 +93,7 @@ optimizer = OptimLP(optimizer,
 columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'tr_time', 'te_loss', 'te_acc', 'swa_te_loss', 'swa_te']
 
 for epoch in range(args.epochs):
-    lr = schedule(epoch)
+    lr = utils.schedule(epoch)
     utils.adjust_learning_rate(optimizer, lr)
     train_res = utils.run_epoch(loaders['train'], model, criterion,
                                 optimizer=optimizer, phase="train" )
