@@ -11,7 +11,7 @@ def set_seed(seed, cuda):
     torch.manual_seed(seed)
     if cuda: torch.cuda.manual_seed(seed)
 
-def schedule(epoch, lr_init=args.lr_init, swa_start=args.swa_start, swa_lr=args.swa_lr):
+def schedule(epoch, lr_init, swa_start, swa_lr):
     if epoch < swa_start:
         t = (epoch) / swa_start
         lr_ratio = 0.01

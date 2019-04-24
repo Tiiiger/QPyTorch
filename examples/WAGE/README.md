@@ -4,8 +4,9 @@ QPyTorch implementation for the ICLR 2018 paper, [WAGE](https://arxiv.org/abs/18
 We modify this implementation based on our previous [pytorch implementation](https://github.com/stevenygd/WAGE.pytorch).
 
 With QPyTorch the simulation overhead is much smaller. Results are obtained on a GTX 1080 Ti
+
 | Seeting         | Training Time per epoch | Simulation Overhead |
-| -------------   |           ------------- |                     |
+| -------------   | ----------------------- | ------------------- |
 | No Quantization |                   13.60 |                   0 |
 | QPyTorch        |                   17.50 |                 3.9 |
 | PyTorch         |                   21.16 |          7.56(1.9x) |

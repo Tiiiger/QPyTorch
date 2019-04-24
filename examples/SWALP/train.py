@@ -8,6 +8,7 @@ import vgg
 from qtorch.quant import *
 from qtorch.optim import OptimLP
 from torch.optim import SGD
+from torch.optim.lr_scheduler import LambdaLR
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 from qtorch.auto_low import sequential_lower
 import torchvision.models as models
@@ -89,12 +90,31 @@ optimizer = OptimLP(optimizer,
                     grad_quant=quant_dict["grad"],
                     momentum_quant=quant_dict["momentum"])
 
+def schedule(epoch):
+    if epoch < args.swa_start:
+        t = (epoch) / args.swa_start
+        lr_ratio = 0.01
+        if t <= 0.5:
+            factor = 1.0
+        elif t <= 0.9:
+            factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+        else:
+            factor = lr_ratio
+        return factor
+    else:
+        return args.swa_lr // args.lr_init
+
+# learning rate schedule
+scheduler = LambdaLR(optimizer, lr_lambda=[schedule])
+
+
 # Prepare logging
 columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'tr_time', 'te_loss', 'te_acc', 'swa_te_loss', 'swa_te']
 
 for epoch in range(args.epochs):
-    lr = utils.schedule(epoch)
-    utils.adjust_learning_rate(optimizer, lr)
+    # lr = utils.schedule(epoch, args.lr_init, args.swa_start, args.swa_lr)
+    # utils.adjust_learning_rate(optimizer, lr)
+    scheduler.step()
     train_res = utils.run_epoch(loaders['train'], model, criterion,
                                 optimizer=optimizer, phase="train" )
     test_res = utils.run_epoch(loaders['test'], model, criterion,
@@ -108,5 +128,5 @@ for epoch in range(args.epochs):
     else:
         swa_te_res = {'loss': None, 'accuracy': None}
 
-    values = [epoch + 1, lr, *train_res.values(), *test_res.values(), *swa_te_res.values()]
+    values = [epoch + 1, optimizer.param_groups[0]['lr'], *train_res.values(), *test_res.values(), *swa_te_res.values()]
     utils.print_table(columns, values, epoch)

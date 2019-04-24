@@ -16,12 +16,21 @@ repo [WAGE.qpytorch](https://github.com/Tiiiger/WAGE.pytorch). We provide a list
 of working examples under [Examples](#examples).
 
 *Note*: QPyTorch relies on PyTorch functions for the underlying computation,
-such as matrix multiplication. Therefore, QPyTorch is not intended to be used to
-study the numerical behavior of different accumulation strategies.
+such as matrix multiplication. This means that the actual computation is done in
+single precision. Therefore, QPyTorch is not intended to be used to study the
+numerical behavior of different **accumulation** strategies.
 
 ## Installation
+
+requirements:
+
 - Python >= 3.6
 - PyTorch >= 1.0
+
+Install other requirements by:
+```bash
+pip install -r requirements.txt
+```
 
 Install QPyTorch through pip:
 ```bash
@@ -29,7 +38,7 @@ pip install qtorch
 ```
 
 ## Documentation
-See our [read the docs](www.google.com)
+See our [readthedocs](https://qpytorch.readthedocs.io/en/latest/) page.
 
 ## Tutorials
 - [An overview of QPyTorch's features](https://github.com/Tiiiger/QPyTorch/blob/master/examples/tutorial/Functionality_Overview.ipynb)
@@ -37,11 +46,11 @@ See our [read the docs](www.google.com)
 
 ## Examples
 - Low-Precision VGGs and ResNets using fixed point, block floating point on CIFAR and ImageNet. [lp_train](https://github.com/Tiiiger/QPyTorch/blob/master/examples/lp_train)
-- Reproduction of WAGE in QPyTorch. [WAGE.qpytorch](https://github.com/Tiiiger/QPyTorch/blob/master/examples)
-- Reproduction of 8-bit Floating Point Training in QPyTorch. [IBM8.qpytorch](https://github.com/Tiiiger/QPyTorch/blob/master/examples)
+- Reproduction of WAGE in QPyTorch. [WAGE](https://github.com/Tiiiger/QPyTorch/blob/master/examples/WAGE)
+- Implementation (simulation) of 8-bit Floating Point Training in QPyTorch. [IBM8](https://github.com/Tiiiger/QPyTorch/blob/master/examples/IBM8)
 
 ## Team
-* Tianyi Zhang (Cornell University)
-* Zhiqiu Lin (Cornell University)
-* [Guandao Yang](http://www.guandaoyang.com/) (Cornell University)
-* [Christopher De Sa](http://www.cs.cornell.edu/~cdesa/) (Cornell University)
+* [Tianyi Zhang](https://scholar.google.com/citations?user=OI0HSa0AAAAJ&hl=en)
+* Zhiqiu Lin
+* [Guandao Yang](http://www.guandaoyang.com/)
+* [Christopher De Sa](http://www.cs.cornell.edu/~cdesa/)

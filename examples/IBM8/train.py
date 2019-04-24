@@ -13,6 +13,7 @@ import numpy as np
 from tensorboardX import SummaryWriter
 from qtorch.auto_low import lower
 from qtorch.optim import OptimLP
+from torch.optim.lr_scheduler import LambdaLR
 from torch.optim import SGD
 from qtorch import BlockFloatingPoint, FixedPoint, FloatingPoint
 from qtorch.quant import quantizer, Quantizer
@@ -87,18 +88,6 @@ if 'LP' in args.model:
 model = model_cfg.base(*model_cfg.args, num_classes=num_classes, **model_cfg.kwargs)
 model.cuda()
 
-def schedule(epoch):
-    t = (epoch) / args.epochs
-    lr_ratio = 0.01
-    if t <= 0.5:
-        factor = 1.0
-    elif t <= 0.9:
-        factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
-    else:
-        factor = lr_ratio
-
-    return args.lr_init * factor
-
 criterion = F.cross_entropy
 optimizer = SGD(
    model.parameters(),
@@ -111,9 +100,22 @@ optimizer = OptimLP(optimizer,
                     grad_quant=quantizers["grad"],
                     momentum_quant=quantizers["momentum"],
                     acc_quant=quantizers["acc"],
-                    grad_scaling=1/1000
+                    grad_scaling=1/1000 # scaling down the gradient
 )
 
+def schedule(epoch):
+    t = (epoch) / args.epochs
+    lr_ratio = 0.01
+    if t <= 0.5:
+        factor = 1.0
+    elif t <= 0.9:
+        factor = 1.0 - (1.0 - lr_ratio) * (t - 0.5) / 0.4
+    else:
+        factor = lr_ratio
+
+    return factor
+
+scheduler = LambdaLR(optimizer, lr_lambda=[schedule])
 # Prepare logging
 columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'tr_time', 'te_loss', 'te_acc', 'te_time']
 
@@ -127,17 +129,15 @@ def get_result(loaders, model, phase):
 
 for epoch in range(args.epochs):
 
-    lr = schedule(epoch)
-    utils.adjust_learning_rate(optimizer, lr)
+    scheduler.step()
     time_ep = time.time()
     train_res = get_result(loaders, model, "train")
 
     if epoch == 0 or epoch % 5 == 4 or epoch == args.epochs - 1:
         test_res = get_result(loaders, model, "test")
-
     else:
         test_res = {'loss': None, 'accuracy': None, 'time_pass': None}
 
-    values = [epoch + 1, lr, train_res['loss'], train_res['accuracy'], train_res['time_pass'], test_res['loss'], test_res['accuracy'], test_res['time_pass']]
+    values = [epoch + 1, optimizer.param_groups[0]['lr'], train_res['loss'], train_res['accuracy'], train_res['time_pass'], test_res['loss'], test_res['accuracy'], test_res['time_pass']]
 
     utils.print_table(values, columns, epoch)
