@@ -1,18 +1,18 @@
 # QPyTorch
 
-QPyTorch is a low-precision arithmetic simulation package implemented through
-PyTorch. QPyTorch is designed to support researches on low-precision machine
-learning, especially in low-precision training. 
+QPyTorch is a low-precision arithmetic simulation package in
+PyTorch. It is designed to support researches on low-precision machine
+learning, especially for researches in low-precision training. 
 
 Notably, QPyTorch supports quantizing different numbers in the training process
 with customized low-precision formats. This eases the process of investigating
-different precision setting and developing new deep learning architectures. More
+different precision settings and developing new deep learning architectures. More
 concretely, QPyTorch implements fused kernels for quantization and integrates
 smoothly with existing PyTorch kernels (e.g. matrix multiplication, convolution). 
 
 Recent researches can be reimplemented easily through QPyTorch. We offer an
-example replicate of [WAGE](https://arxiv.org/abs/1802.04680) in a downstream
-repo [WAGE.qpytorch](https://github.com/Tiiiger/WAGE.pytorch). We provide a list
+example replication of [WAGE](https://arxiv.org/abs/1802.04680) in a downstream
+repo [WAGE](https://github.com/Tiiiger/QPyTorch/blob/master/examples/WAGE). We also provide a list
 of working examples under [Examples](#examples).
 
 *Note*: QPyTorch relies on PyTorch functions for the underlying computation,

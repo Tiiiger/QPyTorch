@@ -17,7 +17,7 @@ if has_dev_pytorch:  # Remove the PyTorch requirement
     ]
 
 setup(name='qtorch',
-      version='0.0.1',
+      version='0.1.0',
       description="Low-Precision Arithmetic Simulation in Pytorch",
       long_description=open("README.md").read(),
       author="Tianyi Zhang, Zhiqiu Lin, Guandao Yang, Christopher De Sa",
