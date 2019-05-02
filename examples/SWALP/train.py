@@ -102,7 +102,7 @@ def schedule(epoch):
             factor = lr_ratio
         return factor
     else:
-        return args.swa_lr // args.lr_init
+        return args.swa_lr / args.lr_init
 
 # learning rate schedule
 scheduler = LambdaLR(optimizer, lr_lambda=[schedule])
