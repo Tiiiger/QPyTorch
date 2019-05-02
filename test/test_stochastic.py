@@ -29,14 +29,14 @@ class TestStochastic(unittest.TestCase):
     def test_stochastic_block(self):
         for d in ['cpu', 'cuda']:
             for dim in [-1, 0, 1]:
-                a = torch.randn(10, 10, 10)
-                quant = lambda x : block_quantize(x, wl=5, dim=dim)
+                a = torch.rand(10, 10, 10)
+                quant = lambda x : block_quantize(x, wl=6, dim=dim)
                 error = self.calc_expectation_error(a, quant, 1e5)
-                self.assertTrue((error < 1e-6))
-                number = BlockFloatingPoint(wl=5, dim=dim)
+                self.assertTrue(error < 1e-4)
+                number = BlockFloatingPoint(wl=6, dim=dim)
                 quant = quantizer(forward_number=number, forward_rounding="stochastic")
                 error = self.calc_expectation_error(a, quant, 1e5)
-                self.assertTrue(error<1e-6)
+                self.assertTrue(error<1e-4)
 
     def test_stochastic_float(self):
         for d in ['cpu', 'cuda']:
