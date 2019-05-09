@@ -59,9 +59,9 @@ def run_binaryconnect(loader, model, criterion, optimizer=None, writer=None,
     ttl = 0
     with torch.autograd.set_grad_enabled(phase=="train"):
         for i, (input, target) in enumerate(loader):
-            input = input.cuda(async=True)
+            input = input.cuda()
             if half: input = input.half()
-            target = target.cuda(async=True)
+            target = target.cuda()
             output = model(input)
             loss = criterion(output, target)
 
