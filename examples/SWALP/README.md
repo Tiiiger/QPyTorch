@@ -26,7 +26,7 @@ In training a simulated low-precision VGG model, each epoch takes 23.0s in
 this implementation whereas the PyTorch implementation takes 36.8s (measured on
 a GTX 1080-Ti GPU).
 
-## Citing this repo
+## Citation
 Please cite the SWALP paper if you find this repo useful in your research:
 ```latex
 @misc{gu2019swalp,
@@ -40,11 +40,10 @@ Please cite the SWALP paper if you find this repo useful in your research:
 ```
 
 ## Dependencies
-* CUDA 9.0
-* [PyTorch](http://pytorch.org/) >= 1.0
+* [PyTorch](http://pytorch.org/) >= 1.1
 * [torchvision](https://github.com/pytorch/vision/)
 * [tensorflow](https://www.tensorflow.org/) to use tensorboard
-* [qtorch](https://github.com/Tiiiger/QPyTorch)
+* [qtorch](https://github.com/Tiiiger/QPyTorch) >= 0.1.1
 
 To install other requirements through `$ pip install -r requirements.txt`.
 
