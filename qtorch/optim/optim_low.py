@@ -94,7 +94,7 @@ class OptimLP(Optimizer):
         # quantize momentum
         if not self.momentum_quant is None:
             for group in self.param_groups:
-                if group['momentum'] == 0: continue
+                if isinstance(self.optim, SGD) and group['momentum'] == 0: continue
                 for p in group['params']:
                     param_state = self.optim.state[p]
                     for key in self.momentum_keys:
