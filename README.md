@@ -20,12 +20,17 @@ such as matrix multiplication. This means that the actual computation is done in
 single precision. Therefore, QPyTorch is not intended to be used to study the
 numerical behavior of different **accumulation** strategies.
 
+*Note*: QPyTorch, as of now, have a different rounding mode with PyTorch. QPyTorch does round-away-from-zero while
+PyTorch does round-to-nearest-even. This will create a discrepancy between the PyTorch half-precision tensor 
+and QPyTorch's simulation of half-precision numbers.
+
 ## Installation
 
 requirements:
 
 - Python >= 3.6
 - PyTorch >= 1.0
+- GCC >= 4.9 on linux
 
 Install other requirements by:
 ```bash
@@ -36,6 +41,9 @@ Install QPyTorch through pip:
 ```bash
 pip install qtorch
 ```
+
+For more details about compiler requirements, 
+please refer to [PyTorch extension tutorial](https://pytorch.org/tutorials/advanced/cpp_extension.html).
 
 ## Documentation
 See our [readthedocs](https://qpytorch.readthedocs.io/en/latest/) page.
