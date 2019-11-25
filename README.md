@@ -1,4 +1,5 @@
 # QPyTorch
+[![Downloads](https://pepy.tech/badge/qtorch)](https://pepy.tech/project/qtorch) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 QPyTorch is a low-precision arithmetic simulation package in
 PyTorch. It is designed to support researches on low-precision machine
