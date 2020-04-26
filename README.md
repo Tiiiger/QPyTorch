@@ -7,7 +7,7 @@
   representable positive number rounded to the smallest rep positive number. Now we round to 0 or the smallest 
   representable number based on which one is the nearest
   - **Different Behavior**: To be consistent with PyTorch [Issue #17443](https://github.com/pytorch/pytorch/pull/17443),
-  we round the nearest even now.
+  we round to nearest even now.
   - We migrate to PyTorch 1.5.0. There are several changes in the C++ API of PyTorch. 
   This new version is not backward-compatible with older PyTorch. 
   - *Note*: if you are using CUDA 10.1, please install CUDA 10.1 Update 1 (or later version). There is a bug in 
