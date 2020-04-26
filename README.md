@@ -9,9 +9,12 @@
   - **Different Behavior**: To be consistent with PyTorch [Issue #16498](https://github.com/pytorch/pytorch/pull/17443),
   we round the nearest even now.
   - We migrate to PyTorch 1.5.0. There are several changes in the C++ API of PyTorch. 
-  This new version is no longer backward-compatible with older PyTorch. 
-  - **Special Note**: if you are using CUDA 10.1, please install CUDA 10.1 Update 1 (or later version). There is a bug in 
+  This new version is not backward-compatible with older PyTorch. 
+  - *Note*: if you are using CUDA 10.1, please install CUDA 10.1 Update 1 (or later version). There is a bug in 
   the first version of CUDA 10.1 which leads to compilation error.
+  - *Note*: previous users, please remove the cache in the pytorch extension directory. 
+  For example, you can run this command `rm -rf /tmp/torch_extensions/quant_cuda /tmp/torch_extensions/quant_cuda` if 
+  you are using the default directory for pytorch extensions.
 
 
 QPyTorch is a low-precision arithmetic simulation package in
