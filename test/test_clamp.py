@@ -24,9 +24,7 @@ class TestStochastic(unittest.TestCase):
                 self.assertEqual(t_min, clamp_a.min().item())
 
                 a = torch.linspace(-2, 2, steps=100, device=d)
-                no_clamp_a = fixed_point_quantize(
-                    a, wl=wl, fl=fl, clamp=False, rounding=r
-                )
+                no_clamp_a = fixed_point_quantize(a, wl=wl, fl=fl, clamp=False, rounding=r)
                 self.assertLess(t_max, no_clamp_a.max().item())
                 self.assertGreater(t_min, no_clamp_a.min().item())
 
@@ -40,18 +38,20 @@ class TestStochastic(unittest.TestCase):
                     # test positive
                     a_max = 2 ** (2 ** (exp - 1)) * (1 - 2 ** (-man - 1))
                     a_min = 2 ** (-(2 ** (exp - 1)) + 1)
-                    a = torch.Tensor([2 ** 50, 2 ** (-50)]).to(device=d)
+                    a = torch.Tensor([2 ** 50, a_min * 0.75, 2 ** (-50)]).to(device=d)
                     quant_a = float_quantize(a, exp=exp, man=man, rounding=r)
                     self.assertEqual(quant_a[0].item(), a_max)
                     self.assertAlmostEqual(quant_a[1].item(), a_min)
+                    self.assertAlmostEqual(quant_a[2].item(), 0)
 
                     # test negative
                     a_max = -(2 ** (2 ** (exp - 1))) * (1 - 2 ** (-man - 1))
                     a_min = -(2 ** (-(2 ** (exp - 1)) + 1))
-                    a = torch.Tensor([-(2 ** 35), -(2 ** (-35))]).to(device=d)
+                    a = torch.Tensor([-(2 ** 50), a_min * 0.75, -(2 ** (-50))]).to(device=d)
                     quant_a = float_quantize(a, exp=exp, man=man, rounding=r)
                     self.assertEqual(quant_a[0].item(), a_max)
                     self.assertAlmostEqual(quant_a[1].item(), a_min)
+                    self.assertAlmostEqual(quant_a[2].item(), 0)
 
 
 if __name__ == "__main__":

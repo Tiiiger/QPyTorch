@@ -36,11 +36,11 @@ Tensor block_quantize_stochastic_cuda(Tensor a, int wl, int dim) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  block_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                    rand_ints.data<int>(),
-                                                    o.data<float>(),
+  block_kernel_stochastic<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                    rand_ints.data_ptr<int>(),
+                                                    o.data_ptr<float>(),
                                                     size,
-                                                    max_entry.data<float>(),
+                                                    max_entry.data_ptr<float>(),
                                                     wl);
   return o;
 }
@@ -53,10 +53,10 @@ Tensor block_quantize_nearest_cuda(Tensor a, int wl, int dim) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  block_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
-                                                 o.data<float>(),
+  block_kernel_nearest<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                 o.data_ptr<float>(),
                                                  size,
-                                                 max_entry.data<float>(),
+                                                 max_entry.data_ptr<float>(),
                                                  wl);
   return o;
 }
@@ -70,11 +70,11 @@ Tensor block_quantize_sim_stochastic_cuda(Tensor a, int wl) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  block_kernel_sim_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                        rand_probs.data<float>(),
-                                                        o.data<float>(),
+  block_kernel_sim_stochastic<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                        rand_probs.data_ptr<float>(),
+                                                        o.data_ptr<float>(),
                                                         size,
-                                                        max_entry.data<float>(),
+                                                        max_entry.data_ptr<float>(),
                                                         wl);
   return o;
 }
@@ -88,10 +88,10 @@ Tensor block_quantize_sim_nearest_cuda(Tensor a, int wl) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  block_kernel_sim_nearest<<<blockNums, blockSize>>>(a.data<float>(),
-                                                 o.data<float>(),
+  block_kernel_sim_nearest<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                 o.data_ptr<float>(),
                                                  size,
-                                                 max_entry.data<float>(),
+                                                 max_entry.data_ptr<float>(),
                                                  wl);
   return o;
 }
@@ -104,9 +104,9 @@ Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  float_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                    rand_ints.data<int>(),
-                                                    o.data<float>(),
+  float_kernel_stochastic<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                    rand_ints.data_ptr<int>(),
+                                                    o.data_ptr<float>(),
                                                     size,
                                                     man_bits,
                                                     exp_bits);
@@ -120,8 +120,8 @@ Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits) {
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  float_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
-                                                 o.data<float>(),
+  float_kernel_nearest<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                 o.data_ptr<float>(),
                                                  size,
                                                  man_bits,
                                                  exp_bits);
@@ -146,9 +146,9 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool use_c
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_kernel_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                                   rand_probs.data<float>(),
-                                                                   o.data<float>(),
+  fixed_point_quantize_kernel_stochastic<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                                   rand_probs.data_ptr<float>(),
+                                                                   o.data_ptr<float>(),
                                                                    size,
                                                                    sigma,
                                                                    use_clamp,
@@ -167,8 +167,8 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool use_clam
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_kernel_nearest<<<blockNums, blockSize>>>(a.data<float>(),
-                                                                o.data<float>(),
+  fixed_point_quantize_kernel_nearest<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                                o.data_ptr<float>(),
                                                                 size,
                                                                 sigma,
                                                                 use_clamp,
@@ -189,10 +189,10 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(Tensor a, i
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_kernel_mask_stochastic<<<blockNums, blockSize>>>(a.data<float>(),
-                                                                        rand_probs.data<float>(),
-                                                                        o.data<float>(),
-                                                                        m.data<uint8_t>(),
+  fixed_point_quantize_kernel_mask_stochastic<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                                        rand_probs.data_ptr<float>(),
+                                                                        o.data_ptr<float>(),
+                                                                        m.data_ptr<uint8_t>(),
                                                                         size,
                                                                         sigma,
                                                                         t_min,
@@ -211,9 +211,9 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask_cuda(Tensor a, int 
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
 
-  fixed_point_quantize_kernel_mask_nearest<<<blockNums, blockSize>>>(a.data<float>(),
-                                                                     o.data<float>(),
-                                                                     m.data<uint8_t>(),
+  fixed_point_quantize_kernel_mask_nearest<<<blockNums, blockSize>>>(a.data_ptr<float>(),
+                                                                     o.data_ptr<float>(),
+                                                                     m.data_ptr<uint8_t>(),
                                                                      size,
                                                                      sigma,
                                                                      t_min,

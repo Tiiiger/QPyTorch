@@ -12,8 +12,8 @@ enum Mode
   rStochastic
 };
 
-#define CHECK_CONTIGUOUS(x) AT_CHECK(x.is_contiguous(), #x " must be contiguous")
-#define CHECK_CPU(x) AT_CHECK(!x.type().is_cuda(), #x " must be a CPU tensor")
+#define CHECK_CONTIGUOUS(x) TORCH_CHECK(x.is_contiguous(), #x " must be contiguous")
+#define CHECK_CPU(x) TORCH_CHECK(!x.is_cuda(), #x " must be a CPU tensor")
 #define CHECK_INPUT(x) \
   CHECK_CPU(x);        \
   CHECK_CONTIGUOUS(x);
@@ -63,12 +63,12 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
 {
   CHECK_INPUT(a);
   auto r = rand_like(a);
-  auto a_array = a.data<float>();
-  auto r_array = r.data<float>();
+  auto a_array = a.data_ptr<float>();
+  auto r_array = r.data_ptr<float>();
   auto o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   auto m = zeros_like(a, torch::CPU(kByte));
-  auto m_array = m.data<uint8_t>();
+  auto m_array = m.data_ptr<uint8_t>();
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min, t_max;
@@ -84,11 +84,11 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
 std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric)
 {
   CHECK_INPUT(a);
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   auto m = zeros_like(a, torch::CPU(kByte));
-  auto m_array = m.data<uint8_t>();
+  auto m_array = m.data_ptr<uint8_t>();
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min, t_max;
@@ -105,10 +105,10 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp, boo
 {
   CHECK_INPUT(a);
   auto r = rand_like(a);
-  auto a_array = a.data<float>();
-  auto r_array = r.data<float>();
+  auto a_array = a.data_ptr<float>();
+  auto r_array = r.data_ptr<float>();
   Tensor o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min, t_max;
@@ -127,9 +127,9 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp, boo
 Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp, bool symmetric)
 {
   CHECK_INPUT(a);
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   Tensor o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
   int sigma = -fl;
   float t_min, t_max;
@@ -217,14 +217,14 @@ Tensor get_max_entry(Tensor a, int dim)
 Tensor block_quantize_nearest(Tensor a, int wl, int dim)
 {
   CHECK_INPUT(a);
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   Tensor o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
 
   // get maximum number and base
   Tensor max_entry = get_max_entry(a, dim);
-  auto max_elem = max_entry.data<float>();
+  auto max_elem = max_entry.data_ptr<float>();
   block_quantize_helper(a_array, o_array, max_elem, wl, size, rNearest);
   return o;
 }
@@ -232,14 +232,14 @@ Tensor block_quantize_nearest(Tensor a, int wl, int dim)
 Tensor block_quantize_stochastic(Tensor a, int wl, int dim)
 {
   CHECK_INPUT(a);
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   Tensor o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
 
   // get maximum number and base
   Tensor max_entry = get_max_entry(a, dim);
-  auto max_elem = max_entry.data<float>();
+  auto max_elem = max_entry.data_ptr<float>();
   // std::srand(time(0));
   block_quantize_helper(a_array, o_array, max_elem, wl, size, rStochastic);
   return o;
@@ -248,9 +248,9 @@ Tensor block_quantize_stochastic(Tensor a, int wl, int dim)
 Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
 {
   // use external random number right now
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int size = a.numel();
 
   for (int64_t i = 0; i < size; i++)
@@ -268,9 +268,9 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
 
 Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits)
 {
-  auto a_array = a.data<float>();
+  auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
-  auto o_array = o.data<float>();
+  auto o_array = o.data_ptr<float>();
   int size = a.numel();
 
   for (int64_t i = 0; i < size; i++)

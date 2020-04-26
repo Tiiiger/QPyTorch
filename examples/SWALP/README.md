@@ -53,10 +53,10 @@ bash example.sh
 ```
 
 ## Results
-| Datset   | Model        | SGD-FP     | SWA-FP     | SGD-LP     | SWALP      |
-|----------|--------------|------------|------------|------------|------------|
-| CIFAR10  | VGG16        | 6.81±0.09  | 6.51±0.14  | 7.61±0.15  | 6.70±0.12  |
-| CIFAR100 | VGG16        | 27.23±0.17 | 25.93±0.21 | 29.59±0.32 | 26.65±0.29 |
+| Datset   | Model | SGD-FP     | SWA-FP     | SGD-LP     | SWALP      |
+| -------- | ----- | ---------- | ---------- | ---------- | ---------- |
+| CIFAR10  | VGG16 | 6.81±0.09  | 6.51±0.14  | 7.61±0.15  | 6.70±0.12  |
+| CIFAR100 | VGG16 | 27.23±0.17 | 25.93±0.21 | 29.59±0.32 | 26.65±0.29 |
 
 ## References
 This repo is modified from the PyTorch repo of [SWALP](https://github.com/stevenygd/SWALP)

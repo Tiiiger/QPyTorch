@@ -2,7 +2,8 @@
 #include <cmath>
 
 __device__ __forceinline__ float round_helper(float a, float r) {
-  return floor(a+r);
+  // return floor(a+r);
+  return nearbyint(a+r-0.5);
 }
 
 __device__ __forceinline__ float round(float a, float r, int sigma) {
