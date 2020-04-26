@@ -6,7 +6,7 @@
   - **Bug fixed**: previously in our floating point quantization, numbers that are closer to 0 than the smallest 
   representable positive number rounded to the smallest rep positive number. Now we round to 0 or the smallest 
   representable number based on which one is the nearest
-  - **Different Behavior**: To be consistent with PyTorch [Issue #16498](https://github.com/pytorch/pytorch/pull/17443),
+  - **Different Behavior**: To be consistent with PyTorch [Issue #17443](https://github.com/pytorch/pytorch/pull/17443),
   we round the nearest even now.
   - We migrate to PyTorch 1.5.0. There are several changes in the C++ API of PyTorch. 
   This new version is no longer backward-compatible with older PyTorch. 
