@@ -37,9 +37,18 @@ __device__ __forceinline__ unsigned int clip_exponent(int exp_bits, int man_bits
     unsigned int old_sign = old_num >> 31 << 31;
     quantized_num = old_sign | max_num;
   } else if (quantized_exponent_store < min_exponent_store) {
-    unsigned int min_num = ((unsigned int) min_exponent_store << 23);
-    unsigned int old_sign = old_num >> 31 << 31;
-    quantized_num = old_sign | min_num;
+    unsigned int min_num = ((unsigned int)min_exponent_store << 23);
+    unsigned int middle_num = ((unsigned int)(min_exponent_store - 1) << 23);
+    unsigned int unsigned_quantized_num = quantized_num << 1 >> 1;
+    if (unsigned_quantized_num > middle_num)
+    {
+      unsigned int old_sign = old_num >> 31 << 31;
+      quantized_num = old_sign | min_num;
+    }
+    else
+    {
+      quantized_num = 0;
+    }
   }
   return quantized_num;
 }

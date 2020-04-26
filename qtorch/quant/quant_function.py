@@ -5,37 +5,40 @@ import torch.nn.functional as F
 import numpy as np
 from torch.utils.cpp_extension import load
 import os
+
 current_path = os.path.dirname(os.path.realpath(__file__))
 quant_cpu = load(
-        name='quant_cpu',
-        sources=[
-            os.path.join(current_path, "quant_cpu/quant_cpu.cpp"),
-            os.path.join(current_path, "quant_cpu/bit_helper.cpp"),
-            os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
-            ]
-        )
+    name="quant_cpu",
+    sources=[
+        os.path.join(current_path, "quant_cpu/quant_cpu.cpp"),
+        os.path.join(current_path, "quant_cpu/bit_helper.cpp"),
+        os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
+    ],
+)
 
 if torch.cuda.is_available():
-     quant_cuda = load(
-             name='quant_cuda',
-             sources=[
-                 os.path.join(current_path, "quant_cuda/quant_cuda.cpp"),
-                 os.path.join(current_path, "quant_cuda/bit_helper.cu"),
-                 os.path.join(current_path, "quant_cuda/sim_helper.cu"),
-                 os.path.join(current_path, "quant_cuda/block_kernel.cu"),
-                 os.path.join(current_path, "quant_cuda/float_kernel.cu"),
-                 os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
-                 os.path.join(current_path, "quant_cuda/quant.cu"),
-                 ]
-             )
+    quant_cuda = load(
+        name="quant_cuda",
+        sources=[
+            os.path.join(current_path, "quant_cuda/quant_cuda.cpp"),
+            os.path.join(current_path, "quant_cuda/bit_helper.cu"),
+            os.path.join(current_path, "quant_cuda/sim_helper.cu"),
+            os.path.join(current_path, "quant_cuda/block_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/float_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
+            os.path.join(current_path, "quant_cuda/quant.cu"),
+        ],
+    )
 else:
     quant_cuda = quant_cpu
 
-__all__ = ['fixed_point_quantize', 'block_quantize', 'float_quantize', "quantizer"]
+__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer"]
+
 
 def assert_wl_fl(wl, fl, stage=""):
     if wl == -1 and fl != -1:
         raise ValueError("fixed point {} wl {}, fl {}".format(stage, wl, fl))
+
 
 def get_module(x):
     if x.is_cuda:
@@ -44,9 +47,15 @@ def get_module(x):
         quant_module = quant_cpu
     return quant_module
 
-def quantizer(forward_number=None, backward_number=None,
-              forward_rounding="stochastic", backward_rounding="stochastic",
-              clamping_grad_zero=False, backward_hooks=[]):
+
+def quantizer(
+    forward_number=None,
+    backward_number=None,
+    forward_rounding="stochastic",
+    backward_rounding="stochastic",
+    clamping_grad_zero=False,
+    backward_hooks=[],
+):
     """
     Creates a quantization function to support quantizing forward and backward process differently.
 
@@ -69,58 +78,86 @@ def quantizer(forward_number=None, backward_number=None,
     for rounding in [forward_rounding, backward_rounding]:
         assert rounding in ["stochastic", "nearest"], "invalid rounding type {:s}".format(rounding)
     for num in [forward_number, backward_number]:
-        if num != None: assert isinstance(num, Number)
+        if num != None:
+            assert isinstance(num, Number)
 
-    if clamping_grad_zero==False:
-        if forward_rounding=="nearest":
-            if type(forward_number)==BlockFloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(x, forward_number.wl, forward_number.dim)
-            elif type(forward_number)==FixedPoint:
-                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(x, forward_number.wl,
-                                                                                                  forward_number.fl, forward_number.clamp,
-                                                                                                  forward_number.symmetric)
-            elif type(forward_number)==FloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(x, forward_number.man, forward_number.exp)
-        elif forward_rounding=="stochastic":
-            if type(forward_number)==BlockFloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(x, forward_number.wl, forward_number.dim)
-            elif type(forward_number)==FixedPoint:
-                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(x, forward_number.wl, forward_number.fl,
-                                                                                                     forward_number.clamp, forward_number.symmetric)
-            elif type(forward_number)==FloatingPoint:
-                forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(x, forward_number.man, forward_number.exp)
+    if clamping_grad_zero == False:
+        if forward_rounding == "nearest":
+            if type(forward_number) == BlockFloatingPoint:
+                forward_quant = lambda x, quant_module: quant_module.block_quantize_nearest(
+                    x, forward_number.wl, forward_number.dim
+                )
+            elif type(forward_number) == FixedPoint:
+                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(
+                    x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric
+                )
+            elif type(forward_number) == FloatingPoint:
+                forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(
+                    x, forward_number.man, forward_number.exp
+                )
+        elif forward_rounding == "stochastic":
+            if type(forward_number) == BlockFloatingPoint:
+                forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(
+                    x, forward_number.wl, forward_number.dim
+                )
+            elif type(forward_number) == FixedPoint:
+                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(
+                    x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric
+                )
+            elif type(forward_number) == FloatingPoint:
+                forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(
+                    x, forward_number.man, forward_number.exp
+                )
     else:
-        if type(forward_number)==FixedPoint or forward_number==None:
-            assert forward_number==None or forward_number.clamp == True, "must use clamping if zeroing out clamped gradient"
-            if forward_rounding=="nearest":
-                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest_mask(x, forward_number.wl, forward_number.fl, forward_number.symmetric)
-            elif forward_rounding=="stochastic":
-                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic_mask(x, forward_number.wl, forward_number.fl, forward_number.symmetric)
+        if type(forward_number) == FixedPoint or forward_number == None:
+            assert (
+                forward_number == None or forward_number.clamp == True
+            ), "must use clamping if zeroing out clamped gradient"
+            if forward_rounding == "nearest":
+                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest_mask(
+                    x, forward_number.wl, forward_number.fl, forward_number.symmetric
+                )
+            elif forward_rounding == "stochastic":
+                forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic_mask(
+                    x, forward_number.wl, forward_number.fl, forward_number.symmetric
+                )
         else:
             raise ValueError("zeroing clamping gradient only support fixed point.")
 
-    if backward_rounding=="nearest":
-        if type(backward_number)==BlockFloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.block_quantize_nearest(a, backward_number.wl, backward_number.dim)
-        elif type(backward_number)==FixedPoint:
-            backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_nearest(a, backward_number.wl, backward_number.fl,
-                                                                                               backward_number.clamp, backward_number.symmetric)
-        elif type(backward_number)==FloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(a, backward_number.man, backward_number.exp)
-    elif backward_rounding=="stochastic":
-        if type(backward_number)==BlockFloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(a, backward_number.wl, backward_number.dim)
-        elif type(backward_number)==FixedPoint:
-            backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_stochastic(a, backward_number.wl, backward_number.fl,
-                                                                                                  backward_number.clamp, backward_number.symmetric)
-        elif type(backward_number)==FloatingPoint:
-            backward_quant = lambda a, quant_module: quant_module.float_quantize_stochastic(a, backward_number.man, backward_number.exp)
+    if backward_rounding == "nearest":
+        if type(backward_number) == BlockFloatingPoint:
+            backward_quant = lambda a, quant_module: quant_module.block_quantize_nearest(
+                a, backward_number.wl, backward_number.dim
+            )
+        elif type(backward_number) == FixedPoint:
+            backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_nearest(
+                a, backward_number.wl, backward_number.fl, backward_number.clamp, backward_number.symmetric
+            )
+        elif type(backward_number) == FloatingPoint:
+            backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(
+                a, backward_number.man, backward_number.exp
+            )
+    elif backward_rounding == "stochastic":
+        if type(backward_number) == BlockFloatingPoint:
+            backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(
+                a, backward_number.wl, backward_number.dim
+            )
+        elif type(backward_number) == FixedPoint:
+            backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_stochastic(
+                a, backward_number.wl, backward_number.fl, backward_number.clamp, backward_number.symmetric
+            )
+        elif type(backward_number) == FloatingPoint:
+            backward_quant = lambda a, quant_module: quant_module.float_quantize_stochastic(
+                a, backward_number.man, backward_number.exp
+            )
 
     if clamping_grad_zero == False:
+
         class Rounding(torch.autograd.Function):
             @staticmethod
             def forward(self, x):
-                if forward_number==None: return x
+                if forward_number == None:
+                    return x
 
                 quant_module = get_module(x)
                 out = forward_quant(x.contiguous(), quant_module)
@@ -139,11 +176,13 @@ def quantizer(forward_number=None, backward_number=None,
                     grad_input = None
 
                 return grad_input
+
     else:
+
         class Rounding(torch.autograd.Function):
             @staticmethod
             def forward(self, x):
-                if forward_number==None:
+                if forward_number == None:
                     self.mask = torch.zeros_like(x).byte()
                     return x
                 else:
@@ -199,6 +238,7 @@ def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stoch
         out = quant_module.fixed_point_quantize_stochastic(x.contiguous(), wl, fl, clamp, symmetric)
     return out
 
+
 def block_quantize(x, wl, dim=-1, rounding="stochastic"):
     """
     Quantize a single precision Floating Point into low-precision Block Floating Point
@@ -214,11 +254,12 @@ def block_quantize(x, wl, dim=-1, rounding="stochastic"):
     assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
-    if rounding=="nearest":
+    if rounding == "nearest":
         out = quant_module.block_quantize_nearest(x.contiguous(), wl, dim)
-    elif rounding=="stochastic":
+    elif rounding == "stochastic":
         out = quant_module.block_quantize_stochastic(x.contiguous(), wl, dim)
     return out
+
 
 def float_quantize(x, exp, man, rounding="stochastic"):
     """
@@ -236,8 +277,8 @@ def float_quantize(x, exp, man, rounding="stochastic"):
     assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
-    if rounding=="nearest":
+    if rounding == "nearest":
         out = quant_module.float_quantize_nearest(x.contiguous(), man, exp)
-    elif rounding=="stochastic":
+    elif rounding == "stochastic":
         out = quant_module.float_quantize_stochastic(x.contiguous(), man, exp)
     return out
