@@ -1,11 +1,13 @@
-__all__ = ['Number', 'FixedPoint', 'BlockFloatingPoint', 'FloatingPoint']
+__all__ = ["Number", "FixedPoint", "BlockFloatingPoint", "FloatingPoint"]
 
-class Number():
+
+class Number:
     def __init__(self):
         pass
 
     def __str__(self):
         raise NotImplemented
+
 
 class FixedPoint(Number):
     r"""
@@ -56,8 +58,12 @@ class FixedPoint(Number):
     def __init__(self, wl, fl, clamp=True, symmetric=False):
         assert wl > 0, "invalid bits for word length: {}".format(wl)
         assert fl > 0, "invalid bits for fractional length: {}".format(fl)
-        assert type(symmetric) == bool, "invalid type for clamping choice: {}".format(type(clamp))
-        assert type(symmetric) == bool, "invalid type for symmetric: {}".format(type(symmetric))
+        assert type(symmetric) == bool, "invalid type for clamping choice: {}".format(
+            type(clamp)
+        )
+        assert type(symmetric) == bool, "invalid type for symmetric: {}".format(
+            type(symmetric)
+        )
         self.wl = wl
         self.fl = fl
         self.clamp = clamp
@@ -68,6 +74,7 @@ class FixedPoint(Number):
 
     def __repr__(self):
         return "FixedPoint (wl={:d}, fl={:d})".format(self.wl, self.fl)
+
 
 class FloatingPoint(Number):
     """
@@ -82,6 +89,7 @@ class FloatingPoint(Number):
         - :attr: `man`: number of bits allocated for mantissa, referring to number of bits that are
                         supposed to be stored on hardware (not counting the virtual bits).
     """
+
     def __init__(self, exp, man):
         assert 8 >= exp > 0, "invalid bits for exponent:{}".format(exp)
         assert 23 >= man > 0, "invalid bits for mantissa:{}".format(man)
@@ -93,6 +101,7 @@ class FloatingPoint(Number):
 
     def __repr__(self):
         return "FloatingPoint (exponent={:d}, mantissa={:d})".format(self.exp, self.man)
+
 
 class BlockFloatingPoint(Number):
     """
@@ -108,8 +117,11 @@ class BlockFloatingPoint(Number):
           entire tensor is treated as a single block (there is only 1 shared
           exponent).
     """
+
     def __init__(self, wl, dim=-1):
-        assert wl > 0 and isinstance(wl, int), "invalid bits for word length:{}".format(wl)
+        assert wl > 0 and isinstance(wl, int), "invalid bits for word length:{}".format(
+            wl
+        )
         assert dim >= -1 and isinstance(dim, int), "invalid dimension"
         self.wl = wl
         self.dim = dim

@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.nn.init import kaiming_normal_
 import torchvision.transforms as transforms
 
-__all__ = ['VGG16', 'VGG16BN', 'VGG19', 'VGG19BN']
+__all__ = ["VGG16", "VGG16BN", "VGG19", "VGG19BN"]
 
 
 def make_layers(cfg, batch_norm=False):
@@ -16,7 +16,7 @@ def make_layers(cfg, batch_norm=False):
     in_channels = 3
     n = 1
     for v in cfg:
-        if v == 'M':
+        if v == "M":
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
         else:
             filters = int(v)
@@ -29,17 +29,64 @@ def make_layers(cfg, batch_norm=False):
             in_channels = filters
     return nn.Sequential(*layers)
 
+
 def make_cls(hidden_dim):
     layers = []
     for i in range(2):
-        layers += [nn.Dropout(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU(inplace=True)]
+        layers += [
+            nn.Dropout(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(inplace=True),
+        ]
     return nn.Sequential(*layers)
 
+
 cfg = {
-    16: ['64', '64', 'M', '128', '128', 'M', '256', '256', '256', 'M', '512', '512', '512', 'M', '512', '512', '512', 'M'],
-    19: [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M',
-         512, 512, 512, 512, 'M'],
+    16: [
+        "64",
+        "64",
+        "M",
+        "128",
+        "128",
+        "M",
+        "256",
+        "256",
+        "256",
+        "M",
+        "512",
+        "512",
+        "512",
+        "M",
+        "512",
+        "512",
+        "512",
+        "M",
+    ],
+    19: [
+        64,
+        64,
+        "M",
+        128,
+        128,
+        "M",
+        256,
+        256,
+        256,
+        256,
+        "M",
+        512,
+        512,
+        512,
+        512,
+        "M",
+        512,
+        512,
+        512,
+        512,
+        "M",
+    ],
 }
+
 
 class VGG(nn.Module):
     def __init__(self, num_classes=10, depth=16, batch_norm=False):
@@ -71,17 +118,21 @@ class Base:
     base = VGG
     args = list()
     kwargs = dict()
-    transform_train = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomCrop(32, padding=4),
-        transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-    ])
+    transform_train = transforms.Compose(
+        [
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, padding=4),
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-    ])
+    transform_test = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
 
 
 class VGG16(Base):
@@ -89,12 +140,12 @@ class VGG16(Base):
 
 
 class VGG16BN(Base):
-    kwargs = {'batch_norm': True}
+    kwargs = {"batch_norm": True}
 
 
 class VGG19(Base):
-    kwargs = {'depth': 19}
+    kwargs = {"depth": 19}
 
 
 class VGG19BN(Base):
-    kwargs = {'depth': 19, 'batch_norm': True}
+    kwargs = {"depth": 19, "batch_norm": True}

@@ -76,7 +76,10 @@ def quantizer(
     """
 
     for rounding in [forward_rounding, backward_rounding]:
-        assert rounding in ["stochastic", "nearest"], "invalid rounding type {:s}".format(rounding)
+        assert rounding in [
+            "stochastic",
+            "nearest",
+        ], "invalid rounding type {:s}".format(rounding)
     for num in [forward_number, backward_number]:
         if num != None:
             assert isinstance(num, Number)
@@ -89,7 +92,11 @@ def quantizer(
                 )
             elif type(forward_number) == FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(
-                    x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric
+                    x,
+                    forward_number.wl,
+                    forward_number.fl,
+                    forward_number.clamp,
+                    forward_number.symmetric,
                 )
             elif type(forward_number) == FloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(
@@ -102,7 +109,11 @@ def quantizer(
                 )
             elif type(forward_number) == FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(
-                    x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric
+                    x,
+                    forward_number.wl,
+                    forward_number.fl,
+                    forward_number.clamp,
+                    forward_number.symmetric,
                 )
             elif type(forward_number) == FloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(
@@ -131,7 +142,11 @@ def quantizer(
             )
         elif type(backward_number) == FixedPoint:
             backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_nearest(
-                a, backward_number.wl, backward_number.fl, backward_number.clamp, backward_number.symmetric
+                a,
+                backward_number.wl,
+                backward_number.fl,
+                backward_number.clamp,
+                backward_number.symmetric,
             )
         elif type(backward_number) == FloatingPoint:
             backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(
@@ -144,7 +159,11 @@ def quantizer(
             )
         elif type(backward_number) == FixedPoint:
             backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_stochastic(
-                a, backward_number.wl, backward_number.fl, backward_number.clamp, backward_number.symmetric
+                a,
+                backward_number.wl,
+                backward_number.fl,
+                backward_number.clamp,
+                backward_number.symmetric,
             )
         elif type(backward_number) == FloatingPoint:
             backward_quant = lambda a, quant_module: quant_module.float_quantize_stochastic(
@@ -171,7 +190,9 @@ def quantizer(
                         grad_input = grad_output
                     else:
                         quant_module = get_module(grad_output)
-                        grad_input = backward_quant(grad_output.contiguous(), quant_module)
+                        grad_input = backward_quant(
+                            grad_output.contiguous(), quant_module
+                        )
                 else:
                     grad_input = None
 
@@ -202,7 +223,9 @@ def quantizer(
                         # grad_output = grad_output.contiguous().masked_fill_(self.mask, 0)
                         for f in backward_hooks:
                             grad_output = f(grad_output)
-                        grad_input = backward_quant(grad_output.contiguous(), quant_module).masked_fill(self.mask, 0)
+                        grad_input = backward_quant(
+                            grad_output.contiguous(), quant_module
+                        ).masked_fill(self.mask, 0)
                 else:
                     grad_input = None
 
@@ -233,9 +256,13 @@ def fixed_point_quantize(x, wl, fl, clamp=True, symmetric=False, rounding="stoch
     assert_wl_fl(wl, fl)
     quant_module = get_module(x)
     if rounding == "nearest":
-        out = quant_module.fixed_point_quantize_nearest(x.contiguous(), wl, fl, clamp, symmetric)
+        out = quant_module.fixed_point_quantize_nearest(
+            x.contiguous(), wl, fl, clamp, symmetric
+        )
     elif rounding == "stochastic":
-        out = quant_module.fixed_point_quantize_stochastic(x.contiguous(), wl, fl, clamp, symmetric)
+        out = quant_module.fixed_point_quantize_stochastic(
+            x.contiguous(), wl, fl, clamp, symmetric
+        )
     return out
 
 
@@ -251,8 +278,12 @@ def block_quantize(x, wl, dim=-1, rounding="stochastic"):
     Returns:
         - a quantized low-precision block floating point number (torch.Tensor)
     """
-    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
-    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
+    assert isinstance(
+        x, torch.Tensor
+    ), "x is not a single precision Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(
+        rounding
+    )
     quant_module = get_module(x)
     if rounding == "nearest":
         out = quant_module.block_quantize_nearest(x.contiguous(), wl, dim)
@@ -274,8 +305,12 @@ def float_quantize(x, exp, man, rounding="stochastic"):
     Returns:
         - a quantized low-precision floating point number (torch.Tensor)
     """
-    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
-    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
+    assert isinstance(
+        x, torch.Tensor
+    ), "x is not a single precision Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(
+        rounding
+    )
     quant_module = get_module(x)
     if rounding == "nearest":
         out = quant_module.float_quantize_nearest(x.contiguous(), man, exp)

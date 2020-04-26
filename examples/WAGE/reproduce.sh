@@ -2,7 +2,7 @@
 
 python train.py \
        --dataset CIFAR10 \
-       --data_path $1 \
+       --data_path ./ \
        --dir ./checkpoint/wage-qtorch/stochastic-GE \
        --model VGG7LP \
        --epochs=300 \
