@@ -1,6 +1,19 @@
 # QPyTorch
 [![Downloads](https://pepy.tech/badge/qtorch)](https://pepy.tech/project/qtorch) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+#### News:
+- Updated to version 0.2.0:
+  - **Bug fixed**: previously in our floating point quantization, numbers that are closer to 0 than the smallest 
+  representable positive number rounded to the smallest rep positive number. Now we round to 0 or the smallest 
+  representable number based on which one is the nearest
+  - **Different Behavior**: To be consistent with PyTorch [Issue #16498](https://github.com/pytorch/pytorch/pull/17443),
+  we round the nearest even now.
+  - We migrate to PyTorch 1.5.0. There are several changes in the C++ API of PyTorch. 
+  This new version is no longer backward-compatible with older PyTorch. 
+  - **Special Note**: if you are using CUDA 10.1, please install CUDA 10.1 Update 1 (or later version). There is a bug in 
+  the first version of CUDA 10.1 which leads to compilation error.
+
+
 QPyTorch is a low-precision arithmetic simulation package in
 PyTorch. It is designed to support researches on low-precision machine
 learning, especially for researches in low-precision training. 
@@ -30,8 +43,9 @@ and QPyTorch's simulation of half-precision numbers.
 requirements:
 
 - Python >= 3.6
-- PyTorch >= 1.0
+- PyTorch >= 1.5.0
 - GCC >= 4.9 on linux
+- CUDA >= 10.1 on linux
 
 Install other requirements by:
 ```bash

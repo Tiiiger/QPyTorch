@@ -9,18 +9,16 @@ except ImportError:
 
 # Base equirements
 install_requires = [
-    "torch>=1.0.0",
+    "torch>=1.5.0",
 ]
 if has_dev_pytorch:  # Remove the PyTorch requirement
     install_requires = [
-        install_require
-        for install_require in install_requires
-        if "torch" != re.split(r"(=|<|>)", install_require)[0]
+        install_require for install_require in install_requires if "torch" != re.split(r"(=|<|>)", install_require)[0]
     ]
 
 setup(
     name="qtorch",
-    version="0.1.1",
+    version="0.2.0",
     description="Low-Precision Arithmetic Simulation in Pytorch",
     long_description=open("README.md").read(),
     author="Tianyi Zhang, Zhiqiu Lin, Guandao Yang, Christopher De Sa",
