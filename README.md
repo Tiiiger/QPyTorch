@@ -20,6 +20,7 @@
 QPyTorch is a low-precision arithmetic simulation package in
 PyTorch. It is designed to support researches on low-precision machine
 learning, especially for researches in low-precision training. 
+A more comprehensive write-up can be found [here](https://arxiv.org/abs/1910.04540).
 
 Notably, QPyTorch supports quantizing different numbers in the training process
 with customized low-precision formats. This eases the process of investigating
@@ -31,8 +32,6 @@ Recent researches can be reimplemented easily through QPyTorch. We offer an
 example replication of [WAGE](https://arxiv.org/abs/1802.04680) in a downstream
 repo [WAGE](https://github.com/Tiiiger/QPyTorch/blob/master/examples/WAGE). We also provide a list
 of working examples under [Examples](#examples).
-
-A more comprehensive write-up can be found [here](https://arxiv.org/abs/1910.04540)
 
 *Note*: QPyTorch relies on PyTorch functions for the underlying computation,
 such as matrix multiplication. This means that the actual computation is done in
