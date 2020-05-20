@@ -16,7 +16,7 @@
   For example, you can run this command `rm -rf /tmp/torch_extensions/quant_cuda /tmp/torch_extensions/quant_cpu` if 
   you are using the default directory for pytorch extensions.
 
-
+# Overview
 QPyTorch is a low-precision arithmetic simulation package in
 PyTorch. It is designed to support researches on low-precision machine
 learning, especially for researches in low-precision training. 
@@ -32,6 +32,8 @@ example replication of [WAGE](https://arxiv.org/abs/1802.04680) in a downstream
 repo [WAGE](https://github.com/Tiiiger/QPyTorch/blob/master/examples/WAGE). We also provide a list
 of working examples under [Examples](#examples).
 
+A more comprehensive write-up can be found [here](https://arxiv.org/abs/1910.04540)
+
 *Note*: QPyTorch relies on PyTorch functions for the underlying computation,
 such as matrix multiplication. This means that the actual computation is done in
 single precision. Therefore, QPyTorch is not intended to be used to study the
@@ -40,6 +42,18 @@ numerical behavior of different **accumulation** strategies.
 *Note*: QPyTorch, as of now, have a different rounding mode with PyTorch. QPyTorch does round-away-from-zero while
 PyTorch does round-to-nearest-even. This will create a discrepancy between the PyTorch half-precision tensor 
 and QPyTorch's simulation of half-precision numbers.
+
+if you find this repo useful please cite
+```
+@misc{zhang2019qpytorch,
+    title={QPyTorch: A Low-Precision Arithmetic Simulation Framework},
+    author={Tianyi Zhang and Zhiqiu Lin and Guandao Yang and Christopher De Sa},
+    year={2019},
+    eprint={1910.04540},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+```
 
 ## Installation
 
