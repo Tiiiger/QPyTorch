@@ -32,7 +32,7 @@ if torch.cuda.is_available():
 else:
     quant_cuda = quant_cpu
 
-__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer"]
+__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize"]
 
 
 def assert_wl_fl(wl, fl, stage=""):
@@ -283,4 +283,28 @@ def float_quantize(x, exp, man, rounding="stochastic"):
         out = quant_module.float_quantize_nearest(x.contiguous(), man, exp)
     elif rounding == "stochastic":
         out = quant_module.float_quantize_stochastic(x.contiguous(), man, exp)
+    return out
+
+def posit_quantize(x, nsize, es, rounding="nearest"):
+    """
+    Quantize a single precision Floating Point into low-precision Floating Point
+
+    Args:
+        - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
+        - :attr: `nsize` (int) : number of bits allocated for the posit format
+        - :attr: `es` (int) : number of bits allocated for es field (exponent)
+        - :attr: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
+        - default rounding: `nearest` because it is easier to implement on hardware 
+        - conventional: posit(8,2): 8 bits posit with 2 bits exponent es 
+
+    Returns:
+        - a quantized low-precision posit tensor (torch.Tensor)
+    """
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
+    quant_module = get_module(x)
+    if rounding == "nearest":
+        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es)
+    elif rounding == "stochastic":
+        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es) #todo; temporarily use nearest rounding at all time
     return out
