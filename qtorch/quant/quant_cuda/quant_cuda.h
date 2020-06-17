@@ -78,3 +78,10 @@ Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits);
  * Nearest Rounding.
  **/
 Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits);
+
+/**
+ * quantize a FloatTensor into a low bit-width posit Tensor
+ * with [nsize] wordlength and [es] exponent bits.
+ * Nearest Rounding.
+ **/
+Tensor posit_quantize_nearest_cuda(Tensor a, int nsize, int es);

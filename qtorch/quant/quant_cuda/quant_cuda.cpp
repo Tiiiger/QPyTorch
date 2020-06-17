@@ -72,6 +72,17 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
   return float_quantize_stochastic_cuda(a, man_bits, exp_bits);
 }
 
+Tensor posit_quantize_nearest(Tensor a, int nsize, int es)
+{
+  CHECK_INPUT(a);
+  return posit_quantize_nearest_cuda(a, nsize, es);
+}
+Tensor posit_quantize_stochastic(Tensor a, int nsize, int es)
+{
+  //todo: implement stochastic rounding
+  CHECK_INPUT(a);
+  return posit_quantize_nearest_cuda(a, nsize, es);
+}
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
   m.def("fixed_point_quantize_stochastic", &fixed_point_quantize_stochastic, "Fixed Point Number Stochastic Quantization (CUDA)");
@@ -84,4 +95,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CUDA)");
   m.def("block_quantize_sim_nearest", &block_quantize_sim_nearest, "Block Floating Point Number Stochastic Quantization (CUDA)");
   m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CUDA)");
+  m.def("posit_quantize_nearest", &posit_quantize_nearest, "Low-Bitwidth Posit nearest rounding (CUDA)");
+  m.def("posit_quantize_stochastic", &posit_quantize_stochastic, "Low-Bitwidth Posit stochastic rounding - temporarily use nearest (CUDA)");
+
 }

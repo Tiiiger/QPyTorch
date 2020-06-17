@@ -1,18 +1,14 @@
-#include <torch/extension.h>
 
+#include "quant_kernel.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
-
-#include <vector>
 #include <stdio.h>
-
-#include <fstream>
-
 #define FP16_LIMB_SIZE 16
 #define FP16_TYPE uint16_t
 
 
-
+__constant__ uint32_t	int32_constants[11];
+__constant__ uint64_t	int64_constants[2];
 #define SIGN_MASK 0x8000
 #define FLOAT_SIGN_MASK 0x80000000
 #define FLOAT_SIGN_RESET_MASK 0x7FFFFFFF
@@ -54,25 +50,6 @@ union Bits {
 
 typedef FP16_TYPE fp16;
 
-/* things need to define
-#if _G_NBITS == 16
-#define _G_POSIT_SHIFT_AMOUNT 0
-#define _G_MAXREALP 32767
-#define _G_MINREALP 1
-#define POSIT_EXTRA_BITS_SHIFT 49 // 64 - _G_NBITS + 1
-#define POSIT_EXTRA_BITS_MASK 0x0000FFFFFFFFFFFF
-#define POSIT_HALFWAY_BIT_MASK 0x0001000000000000
-
-#if _G_ESIZE == 1
-#define _G_USEED 4
-#define _G_USEED_ZEROS 2
-#define POSIT_EXPONENT_MASK 1
-#define _G_MAXREAL 2.684354560e+8
-#define _G_MINREAL 3.725290298e-9
-#define _G_MAXREAL_INT 0x8D800000
-#define _G_MINREAL_INT 0x31800000
-
-*/
 /*
 summary:
 uint32_t  size 11 : [_G_POSIT_SHIFT_AMOUNT, _G_MAXREALP, _G_MINREALP, POSIT_EXTRA_BITS_SHIFT,
@@ -94,8 +71,9 @@ uint64_t size 2 : POSIT_EXTRA_BITS_MASK, POSIT_HALFWAY_BIT_MASK
 
 #define POSIT_EXTRA_BITS_MASK   int64_constants[0]
 #define POSIT_HALFWAY_BIT_MASK  int64_constants[1]
-__constant__ uint32_t	int32_constants[ 11 ];
-__constant__ uint64_t	int64_constants[ 2 ];
+
+// __constant__ uint32_t	int32_constants[ 11 ];
+// __constant__ uint64_t	int64_constants[ 2 ];
 
 __device__ __inline__ float fp16tofp32_gpu(fp16 p) {
   union Bits v;
@@ -182,18 +160,8 @@ __device__ __inline__ fp16 fp32tofp16_gpu(float f) {
 
 
 
-//template <typename scalar_t>
-__global__ void posit_cuda_kernel(
-     float* input,
-    size_t input_size) {
-  const int index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < input_size) {
-    fp16 temp = fp32tofp16_gpu(input[index]);
-    input[index] = fp16tofp32_gpu(temp);
 
-  }
-}
-void generate_constants(int nsize, int es, uint32_t* int32_constants, uint64_t* int64_constants) {
+void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint64_t* int64_constants) {
   //local vars have the same name as global constant vars, confusing but less likely error can happen here.
   //ugly but it's the traightforward conversion from the original #define macroes;
   //todo: make this one less messy
@@ -326,6 +294,32 @@ void generate_constants(int nsize, int es, uint32_t* int32_constants, uint64_t* 
 };
 
 
+//template <typename scalar_t>
+__global__ void posit_kernel_nearest( float* input, float*output,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    fp16 temp = fp32tofp16_gpu(input[index]);
+    output[index] = fp16tofp32_gpu(temp);
+
+  }
+}
+
+void posit_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, int blockNums, int blockSize){
+
+    uint32_t int32_constants_host[11];
+    uint64_t int64_constants_host[2];
+    generate_posit_constants(nsize, es, int32_constants_host, int64_constants_host );
+
+    cudaMemcpyToSymbol( int32_constants, &int32_constants_host[0], 11 * sizeof( uint32_t ), 0 );
+    cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
+
+    posit_kernel_nearest<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     size);
+
+}
+/*
 torch::Tensor posit_cuda(
     torch::Tensor input) {
 
@@ -355,3 +349,4 @@ torch::Tensor posit_cuda(
 
   return input;
 }
+*/

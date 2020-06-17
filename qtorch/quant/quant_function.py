@@ -27,6 +27,7 @@ if torch.cuda.is_available():
             os.path.join(current_path, "quant_cuda/float_kernel.cu"),
             os.path.join(current_path, "quant_cuda/fixed_point_kernel.cu"),
             os.path.join(current_path, "quant_cuda/quant.cu"),
+            os.path.join(current_path, "quant_cuda/posit_kernel.cu"),
         ],
     )
 else:
@@ -294,8 +295,8 @@ def posit_quantize(x, nsize, es, rounding="nearest"):
         - :attr: `nsize` (int) : number of bits allocated for the posit format
         - :attr: `es` (int) : number of bits allocated for es field (exponent)
         - :attr: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
-        - default rounding: `nearest` because it is easier to implement on hardware 
-        - conventional: posit(8,2): 8 bits posit with 2 bits exponent es 
+        - default rounding: `nearest` because it is easier to implement on hardware
+        - conventional: posit(8,2): 8 bits posit with 2 bits exponent es
 
     Returns:
         - a quantized low-precision posit tensor (torch.Tensor)
