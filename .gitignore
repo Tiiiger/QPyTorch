@@ -8,6 +8,11 @@ qtorch/*ipynb*
 **/runs
 **/*/*.egg-info
 **/*/*.so
+# Folder view configuration files
+.DS_Store
+Desktop.ini
+# Thumbnail cache files
+._*
 example/runs
 example/data
 **/cifar10
