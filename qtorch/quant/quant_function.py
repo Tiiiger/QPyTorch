@@ -1,5 +1,5 @@
 import torch
-from qtorch import Number, FixedPoint, BlockFloatingPoint, FloatingPoint
+from qtorch import Number, FixedPoint, BlockFloatingPoint, FloatingPoint, Posit
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -96,6 +96,10 @@ def quantizer(
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(
                     x, forward_number.man, forward_number.exp
                 )
+            elif type(forward_number) == Posit:
+                forward_quant = lambda x, quant_module: quant_module.posit_quantize_nearest(
+                    x, forward_number.nsize, forward_number.es, forward_number.scale
+                )    
         elif forward_rounding == "stochastic":
             if type(forward_number) == BlockFloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(
@@ -109,6 +113,10 @@ def quantizer(
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(
                     x, forward_number.man, forward_number.exp
                 )
+            elif type(forward_number) == Posit:
+                forward_quant = lambda x, quant_module: quant_module.posit_quantize_nearest(
+                    x, forward_number.nsize, forward_number.es, forward_number.scale
+                )        
     else:
         if type(forward_number) == FixedPoint or forward_number == None:
             assert (
@@ -138,6 +146,11 @@ def quantizer(
             backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(
                 a, backward_number.man, backward_number.exp
             )
+        elif type(backward_number) == Posit:
+            backward_quant = lambda a, quant_module: quant_module.posit_quantize_nearest(
+                a, backward_number.nsize, backward_number.es, backward_number.scale
+            )
+            
     elif backward_rounding == "stochastic":
         if type(backward_number) == BlockFloatingPoint:
             backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(
@@ -151,6 +164,10 @@ def quantizer(
             backward_quant = lambda a, quant_module: quant_module.float_quantize_stochastic(
                 a, backward_number.man, backward_number.exp
             )
+        elif type(backward_number) == Posit:
+            backward_quant = lambda a, quant_module: quant_module.posit_quantize_nearest(
+                a, backward_number.nsize, backward_number.es, backward_number.scale
+            )            
 
     if clamping_grad_zero == False:
 
