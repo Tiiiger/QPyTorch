@@ -1,3 +1,15 @@
+# Extended version of QPytorch
+#### Author: minhhn2910@github
+#### Install in developer mode: 
+```bash
+git clone https://github.com/minhhn2910/QPyTorch.git
+cd QPyTorch
+pip install -e ./
+```
+#### Functionality: 
+#### Currently under development
+#### The below is the original README file 
+
 # QPyTorch
 [![Downloads](https://pepy.tech/badge/qtorch)](https://pepy.tech/project/qtorch) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
