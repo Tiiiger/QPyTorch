@@ -72,16 +72,16 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
   return float_quantize_stochastic_cuda(a, man_bits, exp_bits);
 }
 
-Tensor posit_quantize_nearest(Tensor a, int nsize, int es)
+Tensor posit_quantize_nearest(Tensor a, int nsize, int es, float scale)
 {
   CHECK_INPUT(a);
-  return posit_quantize_nearest_cuda(a, nsize, es);
+  return posit_quantize_nearest_cuda(a, nsize, es, scale);
 }
-Tensor posit_quantize_stochastic(Tensor a, int nsize, int es)
+Tensor posit_quantize_stochastic(Tensor a, int nsize, int es, float scale)
 {
   //todo: implement stochastic rounding
   CHECK_INPUT(a);
-  return posit_quantize_nearest_cuda(a, nsize, es);
+  return posit_quantize_nearest_cuda(a, nsize, es, scale);
 }
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {

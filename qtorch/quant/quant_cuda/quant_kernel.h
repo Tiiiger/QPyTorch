@@ -35,7 +35,7 @@ __global__ void float_kernel_nearest(float *__restrict__ a,
 
 
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
-                                    float *o, int size, int nsize, int es, int blockNums, int blockSize);
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
 
 
 

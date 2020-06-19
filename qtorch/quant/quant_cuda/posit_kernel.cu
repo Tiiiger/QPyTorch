@@ -287,7 +287,36 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
           printf("unexpected posit config\n");
           exit(1);
       }
-  } else {
+  } else if (nsize == 4){
+     _G_POSIT_SHIFT_AMOUNT = 12;
+     _G_MAXREALP = ((1 << (_G_NBITS - 1)) - 1) << _G_POSIT_SHIFT_AMOUNT;
+     _G_MINREALP = (1 << _G_POSIT_SHIFT_AMOUNT);
+     POSIT_EXTRA_BITS_SHIFT =  (64 - _G_NBITS + 1);
+     POSIT_EXTRA_BITS_MASK = 0x0FFFFFFFFFFFFFF;
+     POSIT_HALFWAY_BIT_MASK = 0x1000000000000000;
+    switch(es) {
+     case 1  :
+      _G_USEED = 4;
+      _G_USEED_ZEROS = 2;
+      POSIT_EXPONENT_MASK = 1;
+      _G_MAXREAL_INT = 0x41800000; // 16
+      _G_MINREAL_INT = 0x3d800000; // 0.0625
+        break; //optional
+     case 2  :
+      _G_USEED = 16;
+      _G_USEED_ZEROS = 4;
+      POSIT_EXPONENT_MASK = 3;
+      _G_MAXREAL_INT = 0x43800000; // 256
+      _G_MINREAL_INT = 0x3b800000; // 1/256
+        break; //optional
+
+     default : //Optional
+          //no case;
+          printf("unexpected posit config\n");
+          exit(1);
+      }
+  }
+  else {
     printf("unexpected posit config\n");
     exit(1);
   }
@@ -295,17 +324,21 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
 
 
 //template <typename scalar_t>
-__global__ void posit_kernel_nearest( float* input, float*output,  size_t input_size) {
+__global__ void posit_kernel_nearest( float* input, float*output, float scale,  size_t input_size) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
-    fp16 temp = fp32tofp16_gpu(input[index]);
-    output[index] = fp16tofp32_gpu(temp);
+    float temp_input = input[index]*scale;
+    
+    fp16 temp = fp32tofp16_gpu(temp_input);
+    temp_input = fp16tofp32_gpu(temp);
+    
+    output[index] = temp_input/scale;
 
   }
 }
 
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
-                                    float *o, int size, int nsize, int es, int blockNums, int blockSize){
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize){
 
     uint32_t int32_constants_host[11];
     uint64_t int64_constants_host[2];
@@ -316,37 +349,7 @@ void posit_kernel_nearest_wrapper(float *__restrict__ a,
 
     posit_kernel_nearest<<<blockNums, blockSize>>>(a,
                                                      o,
+                                                     scale,
                                                      size);
 
 }
-/*
-torch::Tensor posit_cuda(
-    torch::Tensor input) {
-
-      int nsize = 8;
-      int es = 1;
-//  const auto state_size = input.size(0);
-  int64_t input_size = 1;
-  for (int i = 0 ; i< input.sizes().size();i++)
-    input_size = input_size * input.sizes()[i];
-
-  uint32_t int32_constants_host[11];
-  uint64_t int64_constants_host[2];
-  generate_constants(nsize, es, int32_constants_host, int64_constants_host );
-  const int threads = 1024;
-  const dim3 blocks((input_size + threads - 1) / threads);
-
-   cudaMemcpyToSymbol( int32_constants, &int32_constants_host[0], 11 * sizeof( uint32_t ), 0 );
-   cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
-
-
-    posit_cuda_kernel<<<blocks, threads>>>(
-    input.data<float>(),
-        input_size );
-
-
-
-
-  return input;
-}
-*/

@@ -286,7 +286,7 @@ def float_quantize(x, exp, man, rounding="stochastic"):
         out = quant_module.float_quantize_stochastic(x.contiguous(), man, exp)
     return out
 
-def posit_quantize(x, nsize, es, rounding="nearest"):
+def posit_quantize(x, nsize, es, scale = 1.0, rounding="nearest"):
     """
     Quantize a single precision Floating Point into low-precision Floating Point
 
@@ -305,7 +305,7 @@ def posit_quantize(x, nsize, es, rounding="nearest"):
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     if rounding == "nearest":
-        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es)
+        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es, scale)
     elif rounding == "stochastic":
-        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es) #todo; temporarily use nearest rounding at all time
+        out = quant_module.posit_quantize_nearest(x.contiguous(), nsize, es, scale) #todo; temporarily use nearest rounding at all time
     return out

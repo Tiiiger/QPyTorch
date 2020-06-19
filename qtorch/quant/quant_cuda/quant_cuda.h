@@ -84,4 +84,4 @@ Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits);
  * with [nsize] wordlength and [es] exponent bits.
  * Nearest Rounding.
  **/
-Tensor posit_quantize_nearest_cuda(Tensor a, int nsize, int es);
+Tensor posit_quantize_nearest_cuda(Tensor a, int nsize, int es, float scale);
