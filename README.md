@@ -4,10 +4,19 @@
 ```bash
 git clone https://github.com/minhhn2910/QPyTorch.git
 cd QPyTorch
-export TORCH_EXTENSIONS_DIR=/[your-home-folder]/torch_extension
 pip install -e ./
 ```
-Important export build directory, otherwise we will have permission problem in multi-user-server.
+simple test if c-extension is working correctly : 
+```
+python test.py
+```
+Important: if there are errors when running test.py, please export the environment variables indicating build directory and/or CUDA_HOME, otherwise we will have permission problem in multi-user-server.
+```
+export TORCH_EXTENSIONS_DIR=/[your-home-folder]/torch_extension
+export CUDA_HOME=/[your cuda instalation directory e.g. /usr/local/cuda-10.2] 
+python test.py
+```
+
 #### Functionality: 
 #### Currently under development
 #### The below is the original README file 
