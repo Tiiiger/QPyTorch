@@ -4,8 +4,10 @@
 ```bash
 git clone https://github.com/minhhn2910/QPyTorch.git
 cd QPyTorch
+export TORCH_EXTENSIONS_DIR=/[your-home-folder]/torch_extension
 pip install -e ./
 ```
+Important export build directory, otherwise we will have permission problem in multi-user-server.
 #### Functionality: 
 #### Currently under development
 #### The below is the original README file 

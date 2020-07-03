@@ -5,6 +5,7 @@ __all__ = [
     "fixed_point_quantize",
     "block_quantize",
     "float_quantize",
+    "posit_quantize",
     "quantizer",
     "Quantizer",
 ]

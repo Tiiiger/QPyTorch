@@ -13,6 +13,7 @@ qtorch/*ipynb*
 Desktop.ini
 # Thumbnail cache files
 ._*
+.*
 example/runs
 example/data
 **/cifar10

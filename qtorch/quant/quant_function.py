@@ -14,6 +14,7 @@ quant_cpu = load(
         os.path.join(current_path, "quant_cpu/bit_helper.cpp"),
         os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
     ],
+    verbose=True,
 )
 
 if torch.cuda.is_available():
@@ -29,6 +30,7 @@ if torch.cuda.is_available():
             os.path.join(current_path, "quant_cuda/quant.cu"),
             os.path.join(current_path, "quant_cuda/posit_kernel.cu"),
         ],
+    verbose=True,
     )
 else:
     quant_cuda = quant_cpu
