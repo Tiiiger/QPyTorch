@@ -292,7 +292,7 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
      _G_MAXREALP = ((1 << (_G_NBITS - 1)) - 1) << _G_POSIT_SHIFT_AMOUNT;
      _G_MINREALP = (1 << _G_POSIT_SHIFT_AMOUNT);
      POSIT_EXTRA_BITS_SHIFT =  (64 - _G_NBITS + 1);
-     POSIT_EXTRA_BITS_MASK = 0x0FFFFFFFFFFFFFF;
+     POSIT_EXTRA_BITS_MASK = 0x0FFFFFFFFFFFFFFF;
      POSIT_HALFWAY_BIT_MASK = 0x1000000000000000;
     switch(es) {
      case 1  :
