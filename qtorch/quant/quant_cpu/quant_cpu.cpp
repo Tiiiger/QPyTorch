@@ -435,7 +435,7 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
       _G_USEED_ZEROS = 4;
       POSIT_EXPONENT_MASK = 3;
       _G_MAXREAL_INT = 0x47800000;
-      _G_MINREAL_INT = 0x377ffff6;
+      _G_MINREAL_INT = 0x37800000;
         break; //optional
 
      default : //Optional
