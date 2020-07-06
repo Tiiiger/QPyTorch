@@ -1,5 +1,5 @@
 # Extended version of QPytorch
-#### Author: minhhn2910@github
+#### Author: minhhn2910@github, himeshi@github
 #### Install in developer mode: 
 ```bash
 git clone https://github.com/minhhn2910/QPyTorch.git
