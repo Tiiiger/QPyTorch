@@ -202,13 +202,13 @@ Tensor get_max_entry(Tensor a, int dim)
   else if (dim == 0)
   {
     Tensor input_view = a.view({a.size(0), -1});
-    max_entry = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(a).contiguous();
+    max_entry = std::get<0>(input_view.abs().max(1, true)).expand_as(input_view).view_as(a).contiguous();
   }
   else
   {
     Tensor input_transpose = a.transpose(0, dim);
     Tensor input_view = input_transpose.contiguous().view({input_transpose.size(0), -1});
-    Tensor max_transpose = std::get<0>(input_view.max(1, true)).abs().expand_as(input_view).view_as(input_transpose);
+    Tensor max_transpose = std::get<0>(input_view.abs().max(1, true)).expand_as(input_view).view_as(input_transpose);
     max_entry = max_transpose.transpose(dim, 0).contiguous();
   }
   return max_entry;
