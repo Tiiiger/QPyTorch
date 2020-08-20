@@ -375,7 +375,13 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
             _G_MAXREAL_INT = 0x5B800000;
             _G_MINREAL_INT = 0x23800000;
           break; //optional
-
+     case 0  :      
+           _G_USEED = 2;
+          _G_USEED_ZEROS = 1;
+          POSIT_EXPONENT_MASK = 0;
+          _G_MAXREAL_INT = 0x46800000;
+          _G_MINREAL_INT = 0x38800000;  
+          break;
        default : //Optional
             //no case;
             printf("unexpected posit config\n");
@@ -406,7 +412,26 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
       _G_MAXREAL_INT = 0x4B800000;
       _G_MINREAL_INT = 0x33800000;
         break; //optional
+     case 0  :      
+           _G_USEED = 2;
+          _G_USEED_ZEROS = 1;
+          POSIT_EXPONENT_MASK = 0;
+          _G_MAXREAL_INT = 0x42800000;
+          _G_MINREAL_INT = 0x3C800000;  
+     /*
+     #define _G_MAXREALP 32512
+    #define _G_MINREALP 256
+    #define POSIT_EXTRA_BITS_SHIFT 57
+    #define POSIT_EXTRA_BITS_MASK 0x00FFFFFFFFFFFFFF
+    #define POSIT_HALFWAY_BIT_MASK 0x0100000000000000
 
+    #define _G_USEED 2
+    #define _G_USEED_ZEROS 1
+    #define POSIT_EXPONENT_MASK 0
+    #define _G_MAXREAL_INT 0x42800000
+    #define _G_MINREAL_INT 0x3C800000
+     */       
+            break;
      default : //Optional
           //no case;
           printf("unexpected posit config\n");
@@ -615,6 +640,159 @@ Tensor posit_quantize_nearest(Tensor a, int nsize, int es, float scale)
   return o;
 }
 
+fp16 compute_sigmoid(fp16 p) {
+    p ^= 0x8000;
+    return p >> 2;
+}
+
+Tensor posit_sigmoid(Tensor a, int nsize, int es, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+  uint32_t	int32_constants[ 11 ];
+  uint64_t	int64_constants[ 2 ];
+  //only works on nsize = 8 or 16
+  generate_posit_constants(nsize, 0, int32_constants, int64_constants);
+
+    
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i];//*scale;
+    
+    fp16 temp = fp32tofp16(temp_input, int32_constants, int64_constants);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32(temp, int32_constants, int64_constants);
+    
+    o_array[i] = temp_input;///scale;
+   
+  }
+    
+  return o;
+}
+
+
+Tensor posit_tanh(Tensor a, int nsize, int es, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+  uint32_t	int32_constants[ 11 ];
+  uint64_t	int64_constants[ 2 ];
+  //only works on nsize = 8 or 16
+  generate_posit_constants(nsize, 0, int32_constants, int64_constants);
+
+    
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i];//*scale;
+    //tanh(x)=2g(2x)−1
+    fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32(temp, int32_constants, int64_constants);
+    
+    temp_input = temp_input * 2 - 1 ;
+    
+    o_array[i] = temp_input;///scale;
+   
+  }
+    
+  return o;
+}
+
+Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+  uint32_t	int32_constants[ 11 ];
+  uint64_t	int64_constants[ 2 ];
+  //only works on nsize = 8 or 16
+  generate_posit_constants(nsize, 0, int32_constants, int64_constants);
+
+    
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i];//*scale;
+    //tanh(x)=2g(2x)−1
+    fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32(temp, int32_constants, int64_constants);
+    
+    temp_input = temp_input * 2 - 1 ;
+
+      if (temp_input > 0.6)
+          temp_input = temp_input*1.07;
+      
+      if (temp_input < -0.6)
+          temp_input = temp_input*1.07;
+      
+      if (temp_input > 1)
+          temp_input = 1;
+      if (temp_input < -1)
+          temp_input = -1;
+      
+
+      
+      o_array[i] = temp_input;///scale;
+   
+  }
+    
+  return o;
+}
+
+Tensor posit_tanh_enhanced2(Tensor a, int nsize, int es, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+  uint32_t	int32_constants[ 11 ];
+  uint64_t	int64_constants[ 2 ];
+  //only works on nsize = 8 or 16
+  generate_posit_constants(nsize, 0, int32_constants, int64_constants);
+
+    
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i];//*scale;
+    //tanh(x)=2g(2x)−1
+    fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32(temp, int32_constants, int64_constants);
+    
+    temp_input = temp_input * 2 - 1 ;
+
+      if (temp_input > 0.76)
+          temp_input = temp_input+0.068;
+      
+      if (temp_input < -0.76)
+          temp_input = temp_input-0.068;
+      
+      if (temp_input > 1)
+          temp_input = 1;
+      if (temp_input < -1)
+          temp_input = -1;
+      
+
+      
+      o_array[i] = temp_input;///scale;
+   
+  }
+    
+  return o;
+}
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
@@ -627,4 +805,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CPU)");
   m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
   m.def("posit_quantize_nearest", &posit_quantize_nearest, "Low-Bitwidth Posit Quantization (CPU)");    
+  m.def("posit_sigmoid", &posit_sigmoid, "Low-Bitwidth Posit Sigmoid (CPU)");  
+  m.def("posit_tanh", &posit_tanh, "Low-Bitwidth Posit Tanh (CPU)");      
+  m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit Tanh (CPU)");   
+  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");     
 }
