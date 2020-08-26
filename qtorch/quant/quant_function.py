@@ -36,7 +36,7 @@ if torch.cuda.is_available():
 else:
     quant_cuda = quant_cpu
 
-__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced","posit_tanh_enhanced2"]
+__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced"]
 
 
 def assert_wl_fl(wl, fl, stage=""):
@@ -395,25 +395,13 @@ def posit_tanh_enhanced(x, nsize, es=0, scale = 1.0, rounding="nearest"):
     quant_module = get_module(x)
     out = quant_module.posit_tanh_enhanced(x.contiguous(), nsize, 0, scale)
     return out
-
+'''
 def posit_tanh_enhanced2(x, nsize, es=0, scale = 1.0, rounding="nearest"):
-    """
-    Quantize a single precision Floating Point into low-precision Floating Point
 
-    Args:
-        - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
-        - :attr: `nsize` (int) : number of bits allocated for the posit format
-        - :attr: `es` (int) : number of bits allocated for es field (exponent)
-        - :attr: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
-        - default rounding: `nearest` because it is easier to implement on hardware
-        - conventional: posit(8,2): 8 bits posit with 2 bits exponent es
-
-    Returns:
-        - a quantized low-precision posit tensor (torch.Tensor)
-    """
     assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
     assert nsize in [8,16], "only nsize = 8 or 16 is supported, es automatically set to 0"
     assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
     quant_module = get_module(x)
     out = quant_module.posit_tanh_enhanced2(x.contiguous(), nsize, 0, scale)
     return out
+'''

@@ -77,6 +77,23 @@ Tensor posit_quantize_nearest(Tensor a, int nsize, int es, float scale)
   CHECK_INPUT(a);
   return posit_quantize_nearest_cuda(a, nsize, es, scale);
 }
+Tensor posit_sigmoid(Tensor a, int nsize, int es, float scale)
+{
+  CHECK_INPUT(a);
+  return posit_sigmoid_cuda(a, nsize, es, scale);
+}
+Tensor posit_tanh(Tensor a, int nsize, int es, float scale)
+{
+  CHECK_INPUT(a);
+  return posit_tanh_cuda(a, nsize, es, scale);
+}
+Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
+{
+  CHECK_INPUT(a);
+  return posit_tanh_enhanced_cuda(a, nsize, es, scale);
+}
+
+
 Tensor posit_quantize_stochastic(Tensor a, int nsize, int es, float scale)
 {
   //todo: implement stochastic rounding
@@ -97,5 +114,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CUDA)");
   m.def("posit_quantize_nearest", &posit_quantize_nearest, "Low-Bitwidth Posit nearest rounding (CUDA)");
   m.def("posit_quantize_stochastic", &posit_quantize_stochastic, "Low-Bitwidth Posit stochastic rounding - temporarily use nearest (CUDA)");
-
+  m.def("posit_sigmoid", &posit_sigmoid, "Low-Bitwidth Posit sigmoid");
+  m.def("posit_tanh", &posit_tanh, "Low-Bitwidth Posit tanh");
+  m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit tanh with correction");    
 }

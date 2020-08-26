@@ -149,6 +149,64 @@ Tensor posit_quantize_nearest_cuda(Tensor a, int nsize, int es, float scale) {
 }
 
 
+Tensor posit_sigmoid_cuda(Tensor a, int nsize, int es, float scale) {
+
+  auto o = zeros_like(a);
+  int size = a.numel();
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  sigmoid_kernel_wrapper (a.data_ptr<float>(),
+                                 o.data_ptr<float>(),
+                                           size, nsize, es, scale ,
+                                            blockNums,
+                                            blockSize
+                                          );
+
+
+
+  return o;
+}
+
+Tensor posit_tanh_cuda(Tensor a, int nsize, int es, float scale) {
+
+  auto o = zeros_like(a);
+  int size = a.numel();
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  tanh_kernel_wrapper (a.data_ptr<float>(),
+                                 o.data_ptr<float>(),
+                                           size, nsize, es, scale ,
+                                            blockNums,
+                                            blockSize
+                                          );
+
+
+
+  return o;
+}
+
+Tensor posit_tanh_enhanced_cuda(Tensor a, int nsize, int es, float scale) {
+
+  auto o = zeros_like(a);
+  int size = a.numel();
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  tanh_enhanced_kernel_wrapper (a.data_ptr<float>(),
+                                 o.data_ptr<float>(),
+                                           size, nsize, es, scale ,
+                                            blockNums,
+                                            blockSize
+                                          );
+
+
+
+  return o;
+}
+
+
 void fixed_min_max(int wl, int fl, bool symmetric, float* t_min, float* t_max) {
   int sigma = -fl;
   *t_min = -ldexp(1.0, wl-fl-1);

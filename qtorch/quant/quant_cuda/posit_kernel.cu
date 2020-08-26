@@ -190,7 +190,13 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
             _G_MAXREAL_INT = 0x5B800000;
             _G_MINREAL_INT = 0x23800000;
           break; //optional
-
+     case 0  :      
+           _G_USEED = 2;
+          _G_USEED_ZEROS = 1;
+          POSIT_EXPONENT_MASK = 0;
+          _G_MAXREAL_INT = 0x46800000;
+          _G_MINREAL_INT = 0x38800000;  
+          break;
        default : //Optional
             //no case;
             printf("unexpected posit config\n");
@@ -221,7 +227,13 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
       _G_MAXREAL_INT = 0x4B800000;
       _G_MINREAL_INT = 0x33800000;
         break; //optional
-
+     case 0  :      
+           _G_USEED = 2;
+          _G_USEED_ZEROS = 1;
+          POSIT_EXPONENT_MASK = 0;
+          _G_MAXREAL_INT = 0x42800000;
+          _G_MINREAL_INT = 0x3C800000; 
+        break;
      default : //Optional
           //no case;
           printf("unexpected posit config\n");
@@ -322,6 +334,11 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
   }
 };
 
+__device__ fp16 compute_sigmoid(fp16 p) {
+    p ^= 0x8000;
+    return p >> 2;
+}
+
 
 //template <typename scalar_t>
 __global__ void posit_kernel_nearest( float* input, float*output, float scale,  size_t input_size) {
@@ -337,6 +354,73 @@ __global__ void posit_kernel_nearest( float* input, float*output, float scale,  
   }
 }
 
+__global__ void sigmoid_kernel( float* input, float*output, float scale,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index];//*scale; //unused scale val
+    
+  
+    fp16 temp = fp32tofp16_gpu(temp_input);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32_gpu(temp);
+ 
+ 
+    output[index] = temp_input;///scale;
+
+  }
+}
+
+__global__ void tanh_kernel( float* input, float*output, float scale,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index];//*scale; //unused scale val
+    
+    fp16 temp = fp32tofp16_gpu(2*temp_input);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32_gpu(temp);
+    
+    temp_input = temp_input * 2 - 1 ;
+ 
+ 
+    output[index] = temp_input;///scale;
+
+  }
+}
+
+__global__ void tanh_enhanced_kernel( float* input, float*output, float scale,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index];//*scale; //unused scale val
+    
+    //tanh(x)=2g(2x)−1
+    fp16 temp = fp32tofp16_gpu(2*temp_input);
+      
+    temp = compute_sigmoid (temp);
+      
+    temp_input = fp16tofp32_gpu(temp);
+    
+    temp_input = temp_input * 2 - 1 ;
+
+      if (temp_input > 0.76)
+          temp_input = temp_input+0.068;
+      
+      if (temp_input < -0.76)
+          temp_input = temp_input-0.068;
+      
+      if (temp_input > 1)
+          temp_input = 1;
+      if (temp_input < -1)
+          temp_input = -1;
+      
+    output[index] = temp_input;///scale;
+
+  }
+}
+
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
                                     float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize){
 
@@ -348,6 +432,57 @@ void posit_kernel_nearest_wrapper(float *__restrict__ a,
     cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
 
     posit_kernel_nearest<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size);
+
+}
+
+void tanh_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize){
+
+    uint32_t int32_constants_host[11];
+    uint64_t int64_constants_host[2];
+    generate_posit_constants(nsize, 0, int32_constants_host, int64_constants_host );
+
+    cudaMemcpyToSymbol( int32_constants, &int32_constants_host[0], 11 * sizeof( uint32_t ), 0 );
+    cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
+
+    tanh_kernel<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size);
+
+}
+
+void sigmoid_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize){
+
+    uint32_t int32_constants_host[11];
+    uint64_t int64_constants_host[2];
+    generate_posit_constants(nsize, 0, int32_constants_host, int64_constants_host );
+
+    cudaMemcpyToSymbol( int32_constants, &int32_constants_host[0], 11 * sizeof( uint32_t ), 0 );
+    cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
+
+    sigmoid_kernel<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size);
+
+}
+
+void tanh_enhanced_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize){
+
+    uint32_t int32_constants_host[11];
+    uint64_t int64_constants_host[2];
+    generate_posit_constants(nsize, 0, int32_constants_host, int64_constants_host );
+
+    cudaMemcpyToSymbol( int32_constants, &int32_constants_host[0], 11 * sizeof( uint32_t ), 0 );
+    cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
+
+    tanh_enhanced_kernel<<<blockNums, blockSize>>>(a,
                                                      o,
                                                      scale,
                                                      size);

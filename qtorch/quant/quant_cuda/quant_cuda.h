@@ -85,3 +85,9 @@ Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits);
  * Nearest Rounding.
  **/
 Tensor posit_quantize_nearest_cuda(Tensor a, int nsize, int es, float scale);
+
+Tensor posit_sigmoid_cuda(Tensor a, int nsize, int es, float scale);
+
+Tensor posit_tanh_cuda(Tensor a, int nsize, int es, float scale);
+
+Tensor posit_tanh_enhanced_cuda(Tensor a, int nsize, int es, float scale);

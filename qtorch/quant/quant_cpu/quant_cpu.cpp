@@ -706,6 +706,8 @@ Tensor posit_tanh(Tensor a, int nsize, int es, float scale)
   return o;
 }
 
+
+/* // Deprecated, use new enhanced version with only add/substract below
 Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
 {
   auto a_array = a.data_ptr<float>();
@@ -749,8 +751,9 @@ Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
     
   return o;
 }
+*/ 
 
-Tensor posit_tanh_enhanced2(Tensor a, int nsize, int es, float scale)
+Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
 {
   auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
@@ -794,6 +797,7 @@ Tensor posit_tanh_enhanced2(Tensor a, int nsize, int es, float scale)
   return o;
 }
 
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
   m.def("fixed_point_quantize_stochastic_mask", &fixed_point_quantize_stochastic_mask, "Fixed Point Number Stochastic Quantization with Mask (CPU)");
@@ -808,5 +812,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("posit_sigmoid", &posit_sigmoid, "Low-Bitwidth Posit Sigmoid (CPU)");  
   m.def("posit_tanh", &posit_tanh, "Low-Bitwidth Posit Tanh (CPU)");      
   m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit Tanh (CPU)");   
-  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");     
+//  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");     
 }

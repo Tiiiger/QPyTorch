@@ -37,6 +37,15 @@ __global__ void float_kernel_nearest(float *__restrict__ a,
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
                                     float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
 
+void tanh_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
+
+void sigmoid_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
+
+void tanh_enhanced_kernel_wrapper(float *__restrict__ a,
+                                    float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
+
 
 
 __global__ void block_kernel_stochastic(float *__restrict__ a,
