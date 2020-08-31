@@ -405,11 +405,11 @@ __global__ void tanh_enhanced_kernel( float* input, float*output, float scale,  
     
     temp_input = temp_input * 2 - 1 ;
 
-      if (temp_input > 0.76)
-          temp_input = temp_input+0.068;
+      if (temp_input > 0.7583)
+          temp_input = temp_input+0.06795;
       
-      if (temp_input < -0.76)
-          temp_input = temp_input-0.068;
+      if (temp_input < -0.7583)
+          temp_input = temp_input-0.06795;
       
       if (temp_input > 1)
           temp_input = 1;
