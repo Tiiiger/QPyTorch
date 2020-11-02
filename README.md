@@ -19,6 +19,7 @@ python test.py
 
 #### Functionality: 
 #### Currently under development
+#### Most functionalities can be tested by using the notebooks in posit tutorials: ./examples/tutorial/
 #### The below is the original README file 
 
 # QPyTorch
