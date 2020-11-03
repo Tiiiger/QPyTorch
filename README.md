@@ -19,6 +19,7 @@ python test.py
 
 #### Functionality: 
 #### Currently under development
+#### Live demo of applying posit 6 bits & 8 bits to [ALBERT](https://huggingface.co/ktrapeznikov/albert-xlarge-v2-squad-v2) for Question Answering Task: [GoogleColab Demo](https://colab.research.google.com/drive/1t2bsoQb4oI-Lind_ORzroyv8X2H78cdn?usp=sharing)  
 #### Most functionalities can be tested by using the notebooks in posit tutorials: ./examples/tutorial/
 #### The below is the original README file 
 
