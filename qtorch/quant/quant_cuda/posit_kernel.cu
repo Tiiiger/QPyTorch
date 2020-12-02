@@ -190,6 +190,13 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
             _G_MAXREAL_INT = 0x5B800000;
             _G_MINREAL_INT = 0x23800000;
           break; //optional
+     case 3  :      
+           _G_USEED = 256;
+          _G_USEED_ZEROS = 8;
+          POSIT_EXPONENT_MASK = 7;
+          _G_MAXREAL_INT = 0x77800000;
+          _G_MINREAL_INT = 0x07800000;  
+          break;             
      case 0  :      
            _G_USEED = 2;
           _G_USEED_ZEROS = 1;
@@ -197,6 +204,7 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
           _G_MAXREAL_INT = 0x46800000;
           _G_MINREAL_INT = 0x38800000;  
           break;
+  
        default : //Optional
             //no case;
             printf("unexpected posit config\n");
@@ -354,6 +362,89 @@ __global__ void posit_kernel_nearest( float* input, float*output, float scale,  
   }
 }
 
+
+__device__ float new_format_quantize_nearest(float input){
+    float constants[32] = {1.0/65536, 1.0/32768, 1.0/16384, 1.0/8192, 1.0/4096, 1.0/2048, 1.0/1024, 1.0/512, 1.0/256, 1.0/128,
+               3.0/256, 1.0/64,  5.0/256 , 3.0/128,  7.0/256, 1.0/32, 9.0/256, 5.0/128, 3.0/64, 7.0/128,
+               1.0/16,  9.0/128, 5.0/64, 3.0/32,    7.0/64,    1.0/8, 9.0/64, 3.0/16, 1.0/4, 3.0/8, 1.0/2, 1.0};
+    float result = 0.0;
+    if (input != 0.0){
+        
+      float min_abs_err = 1e5;
+      float min_constant = 0.0;
+      for (int i = 0; i<32; i ++){
+          float abs_err = fabsf(constants[i] - fabsf(input));
+          if(abs_err < min_abs_err){
+             min_abs_err = abs_err;
+             min_constant = constants[i];
+          }
+              
+      }
+        
+      if (input < 0)
+          result = - min_constant;
+      else
+          result = min_constant;
+    }
+    
+    return result;
+              
+}
+
+__device__ float act_format_quantize_nearest(float input){
+
+    float constants[32] = {1.0/4096, 1.0/2048, 1.0/1024, 1.0/512, 1.0/256, 1.0/128, 1.0/64, 1.0/32, 1.0/16, 1.0/8, 3.0/16,
+                           1.0/4, 5.0/16, 3.0/8, 7.0/16, 1.0/2, 9.0/16, 5.0/8, 3.0/4, 7.0/8, 1.0, 9.0/8, 5.0/4, 3.0/2,
+                           7.0/4, 2.0, 9.0/4, 3.0, 4.0, 6.0, 8.0, 16.0};
+    float result = 0.0;
+    if (input != 0.0){
+        
+      float min_abs_err = 1e5;
+      float min_constant = 0.0;
+      for (int i = 0; i<32; i ++){
+          float abs_err = fabsf(constants[i] - fabsf(input));
+          if(abs_err < min_abs_err){
+             min_abs_err = abs_err;
+             min_constant = constants[i];
+          }
+              
+      }
+        
+      if (input < 0)
+          result = - min_constant;
+      else
+          result = min_constant;
+    }
+    
+    return result;
+              
+}
+
+//template <typename scalar_t>
+__global__ void newformat_kernel_nearest( float* input, float*output, float scale,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index]*scale;
+    
+    temp_input = new_format_quantize_nearest(temp_input);
+    
+    output[index] = temp_input/scale;
+
+  }
+}
+
+__global__ void actformat_kernel_nearest( float* input, float*output, float scale,  size_t input_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index]*scale;
+    
+    temp_input = act_format_quantize_nearest(temp_input);
+    
+    output[index] = temp_input/scale;
+
+  }
+}
+
 __global__ void sigmoid_kernel( float* input, float*output, float scale,  size_t input_size) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
@@ -432,6 +523,26 @@ void posit_kernel_nearest_wrapper(float *__restrict__ a,
     cudaMemcpyToSymbol( int64_constants, &int64_constants_host[0], 2 * sizeof( uint64_t ), 0 );
 
     posit_kernel_nearest<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size);
+
+}
+
+void newformat_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, int size, float scale, int blockNums, int blockSize){
+
+    newformat_kernel_nearest<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size);
+
+}
+
+void actformat_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, int size, float scale, int blockNums, int blockSize){
+
+    actformat_kernel_nearest<<<blockNums, blockSize>>>(a,
                                                      o,
                                                      scale,
                                                      size);

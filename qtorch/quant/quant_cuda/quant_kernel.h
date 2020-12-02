@@ -33,6 +33,11 @@ __global__ void float_kernel_nearest(float *__restrict__ a,
                                      int man_bits, int exp_bits);
 
 
+void newformat_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, int size, float scale, int blockNums, int blockSize);
+
+void actformat_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, int size, float scale, int blockNums, int blockSize);
 
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
                                     float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
