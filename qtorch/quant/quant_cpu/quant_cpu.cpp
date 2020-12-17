@@ -834,6 +834,33 @@ float new_format_quantize_nearest(float input){
               
 }
 
+/*custom table lookup with given configurable constants codebook table having contant_size elements*/
+float configurable_table_quantize_nearest(float input, float* constants, int constant_size){
+
+    float result = 0.0;
+    if (input != 0.0){
+        
+      float min_abs_err = 1e5;
+      float min_constant = 0.0;
+      for (int i = 0; i<constant_size; i ++){
+          float abs_err = fabs(constants[i] - fabs(input));
+          if(abs_err < min_abs_err){
+             min_abs_err = abs_err;
+             min_constant = constants[i];
+          }
+              
+      }
+        
+      if (input < 0)
+          result = - min_constant;
+      else
+          result = min_constant;
+    }
+    
+    return result;
+              
+}
+
 float act_format_quantize_nearest(float input){
     
     float constants[32] = {1.0/4096, 1.0/2048, 1.0/1024, 1.0/512, 1.0/256, 1.0/128, 1.0/64, 1.0/32, 1.0/16, 1.0/8, 3.0/16,
@@ -905,6 +932,28 @@ Tensor act_format_quantize(Tensor a, float scale)
   return o;
 }
 
+Tensor configurable_table_quantize(Tensor a, Tensor lookup_table, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+    
+  int table_size = lookup_table.numel();
+  auto contants = lookup_table.data_ptr<float>();
+    
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i]*scale;
+    
+    temp_input = configurable_table_quantize_nearest(temp_input, contants, table_size);
+    
+    o_array[i] = temp_input/scale;
+   
+  }
+    
+  return o;
+}
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
@@ -922,5 +971,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit Tanh (CPU)");   
   m.def("new_format_quantize", &new_format_quantize, "New table-lookup Format (CPU)");   
   m.def("act_format_quantize", &act_format_quantize, "New table-lookup Format (Activation CPU)"); 
+  m.def("configurable_table_quantize", &configurable_table_quantize, "Configurable table-lookup Format (CPU)"); 
 //  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");     
 }

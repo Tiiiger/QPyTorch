@@ -36,7 +36,7 @@ if torch.cuda.is_available():
 else:
     quant_cuda = quant_cpu
 
-__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced", "new_format_quantize", "act_format_quantize"]
+__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced", "new_format_quantize", "act_format_quantize", "configurable_table_quantize"]
 
 
 def assert_wl_fl(wl, fl, stage=""):
@@ -423,12 +423,6 @@ def act_format_quantize(x, scale = 1.0, rounding="nearest"):
 
     Args:
         - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
-        - :attr: `nsize` (int) : number of bits allocated for the posit format
-        - :attr: `es` (int) : number of bits allocated for es field (exponent)
-        - :attr: `rounding` (string) : rounding mode, \"stochastic\" or \"nearest\"
-        - default rounding: `nearest` because it is easier to implement on hardware
-        - conventional: posit(8,2): 8 bits posit with 2 bits exponent es
-
     Returns:
         - a quantized low-precision posit tensor (torch.Tensor)
     """
@@ -438,6 +432,23 @@ def act_format_quantize(x, scale = 1.0, rounding="nearest"):
     out = quant_module.act_format_quantize(x.contiguous(), scale)
     return out
 
+
+def configurable_table_quantize(x, table_lookup, scale = 1.0, rounding="nearest"):
+    """
+    Quantize a single precision Floating Point into low-precision Floating Point
+
+    Args:
+        - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
+        - :attr: `table_lookup` (torch.Tensor) : the table for quantization (quantized values)
+
+    Returns:
+        - a quantized low-precision posit tensor (torch.Tensor)
+    """
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
+    assert rounding in ["stochastic", "nearest"], "invalid rounding mode, {}".format(rounding)
+    quant_module = get_module(x)
+    out = quant_module.configurable_table_quantize(x.contiguous(), table_lookup.contiguous(), scale)
+    return out
 
 '''
 def posit_tanh_enhanced2(x, nsize, es=0, scale = 1.0, rounding="nearest"):

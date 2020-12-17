@@ -39,6 +39,10 @@ void newformat_kernel_nearest_wrapper(float *__restrict__ a,
 void actformat_kernel_nearest_wrapper(float *__restrict__ a,
                                     float *o, int size, float scale, int blockNums, int blockSize);
 
+
+void configurable_quantize_kernel_nearest_wrapper(float *__restrict__ a,
+                                    float *o, float* constants, int table_size, int size, float scale, int blockNums, int blockSize);
+
 void posit_kernel_nearest_wrapper(float *__restrict__ a,
                                     float *o, int size, int nsize, int es, float scale, int blockNums, int blockSize);
 

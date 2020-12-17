@@ -90,6 +90,8 @@ Tensor newformat_quantize_nearest_cuda(Tensor a, float scale);
 
 Tensor actformat_quantize_nearest_cuda(Tensor a, float scale);
 
+Tensor configurable_table_quantize_cuda(Tensor a, Tensor lookup_table, float scale);
+    
 Tensor posit_sigmoid_cuda(Tensor a, int nsize, int es, float scale);
 
 Tensor posit_tanh_cuda(Tensor a, int nsize, int es, float scale);
