@@ -15,8 +15,7 @@ class TestStochastic(unittest.TestCase):
 
     def test_fixed(self):
         """test fixed point clamping"""
-        #for d in ["cpu", "cuda"]:
-        for d in ["cpu"]:
+        for d in ["cpu", "cuda"]:
             for r in ["stochastic", "nearest"]:
                 wl = 5
                 fl = 4
@@ -37,8 +36,7 @@ class TestStochastic(unittest.TestCase):
         formats = [(2,2),(2,3),(3,2)]
 
         for exp, man in formats:
-            #for d in ["cpu", "cuda"]:
-            for d in ["cpu"]:
+            for d in ["cpu", "cuda"]:
                 for r in ["stochastic", "nearest"]:
                     a_max = 2 ** (2 ** (exp - 1)) * (1 - 2 ** (-man - 1))
                     a_min = 2 ** (-(2 ** (exp - 1)) + 1)
