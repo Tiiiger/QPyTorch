@@ -2,6 +2,8 @@
 [![Downloads](https://pepy.tech/badge/qtorch)](https://pepy.tech/project/qtorch) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 #### News:
+- Updated to version 0.3.0:
+  - supporting subnorms now (#43). Thanks @danielholanda for his contribution!
 - Updated to version 0.2.0:
   - **Bug fixed**: previously in our floating point quantization, numbers that are closer to 0 than the smallest 
   representable positive number are rounded to the smallest rep positive number. Now we round to 0 or the smallest 
