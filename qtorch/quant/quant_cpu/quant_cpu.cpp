@@ -4,6 +4,7 @@
 #include <tuple>
 #include "quant_cpu.h"
 
+
 using namespace at;
 
 enum Mode
@@ -40,6 +41,23 @@ T clamp_helper(T a, T min, T max)
     return min;
   else
     return a;
+}
+
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+            if ((i==size-1 && j==7) || (i==size-2 && j==7))
+              printf(" ");
+        }
+    }
 }
 
 template <typename T>
@@ -147,6 +165,7 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp, bool s
 
 unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding)
 {
+  
   unsigned int mask = (1 << (23 - man_bits)) - 1;
   unsigned int rand_prob;
   if (rounding == rStochastic)
@@ -245,9 +264,7 @@ Tensor block_quantize_stochastic(Tensor a, int wl, int dim)
   return o;
 }
 
-Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
-{
-  // use external random number right now
+Tensor float_quantize(Tensor a, int man_bits, int exp_bits, Mode rounding){
   auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
   auto o_array = o.data_ptr<float>();
@@ -255,35 +272,41 @@ Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
 
   for (int64_t i = 0; i < size; i++)
   {
-    unsigned int target;
+    unsigned int target,quantize_bits;
     FLOAT_TO_BITS(a_array[i], target);
-    unsigned int quantize_bits = round_bitwise(target, man_bits, rStochastic);
-    quantize_bits = clip_exponent(exp_bits, man_bits, target, quantize_bits);
     float quantized;
-    BITS_TO_FLOAT(quantize_bits, quantized);
+
+    int target_exp = (target << 1 >> 1 >> 23) -127; 
+    int min_exp = -((1 << (exp_bits - 1)) - 2);
+    bool subnormal = (target_exp < min_exp);
+    if (subnormal){
+      float shift_float,val;
+      int shift_bits = ((127+min_exp)<<23) | (target >> 31 <<31);
+      BITS_TO_FLOAT(shift_bits, shift_float);
+      val=a_array[i]+shift_float;
+      FLOAT_TO_BITS(val, target);
+      quantize_bits = round_bitwise(target, man_bits, rounding);
+      BITS_TO_FLOAT(quantize_bits, quantized);
+      quantized=quantized-shift_float;
+    }
+    else{
+      quantize_bits = round_bitwise(target, man_bits, rounding);
+      quantize_bits = clip_exponent(exp_bits, man_bits, target, quantize_bits);
+      BITS_TO_FLOAT(quantize_bits, quantized);
+    }
     o_array[i] = quantized;
   }
   return o;
 }
 
+Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
+{
+  return float_quantize(a,man_bits, exp_bits, rStochastic);
+}
+
 Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits)
 {
-  auto a_array = a.data_ptr<float>();
-  auto o = zeros_like(a);
-  auto o_array = o.data_ptr<float>();
-  int size = a.numel();
-
-  for (int64_t i = 0; i < size; i++)
-  {
-    unsigned int target;
-    FLOAT_TO_BITS(a_array[i], target);
-    unsigned int quantize_bits = round_bitwise(target, man_bits, rNearest);
-    quantize_bits = clip_exponent(exp_bits, man_bits, target, quantize_bits);
-    float quantized;
-    BITS_TO_FLOAT(quantize_bits, quantized);
-    o_array[i] = quantized;
-  }
-  return o;
+  return float_quantize(a,man_bits, exp_bits, rNearest);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)

@@ -93,3 +93,7 @@ See our [readthedocs](https://qpytorch.readthedocs.io/en/latest/) page.
 * Zhiqiu Lin
 * [Guandao Yang](http://www.guandaoyang.com/)
 * [Christopher De Sa](http://www.cs.cornell.edu/~cdesa/)
+
+## Other Contributors
+* [Daniel Holanda Noronha](https://www.linkedin.com/in/danielholandanoronha/)
+
