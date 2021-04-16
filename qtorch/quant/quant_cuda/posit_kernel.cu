@@ -172,176 +172,19 @@ void generate_posit_constants(int nsize, int es, uint32_t* int32_constants, uint
   //todo: make this one less messy
   _G_NBITS = nsize;
   _G_ESIZE = es;
-  if (nsize == 16 ){
-    _G_POSIT_SHIFT_AMOUNT = 0;
-    _G_MAXREALP = 32767;
-    _G_MINREALP =  1;
-    POSIT_EXTRA_BITS_SHIFT = 49 ;// 64 - _G_NBITS + 1
-    POSIT_EXTRA_BITS_MASK = 0x0000FFFFFFFFFFFF;
-    POSIT_HALFWAY_BIT_MASK = 0x0001000000000000;
-
-      switch(es) {
-       case 1  :
-            _G_USEED = 4;
-            _G_USEED_ZEROS  = 2;
-            POSIT_EXPONENT_MASK = 1;
-            _G_MAXREAL_INT =  0x4D800000;
-            _G_MINREAL_INT = 0x31800000;
-          break; //optional
-       case 2  :
-            _G_USEED = 16;
-            _G_USEED_ZEROS = 4;
-            POSIT_EXPONENT_MASK = 3;
-            _G_MAXREAL_INT = 0x5B800000;
-            _G_MINREAL_INT = 0x23800000;
-          break; //optional
-     case 3  :      
-           _G_USEED = 256;
-          _G_USEED_ZEROS = 8;
-          POSIT_EXPONENT_MASK = 7;
-          _G_MAXREAL_INT = 0x77800000;
-          _G_MINREAL_INT = 0x07800000;  
-          break;             
-     case 0  :      
-           _G_USEED = 2;
-          _G_USEED_ZEROS = 1;
-          POSIT_EXPONENT_MASK = 0;
-          _G_MAXREAL_INT = 0x46800000;
-          _G_MINREAL_INT = 0x38800000;  
-          break;
-  
-       default : //Optional
-            //no case;
-            printf("unexpected posit config\n");
-            exit(1);
-
-    }
-
-  } else if (nsize == 8){
-     _G_POSIT_SHIFT_AMOUNT =  8;
-     _G_MAXREALP = 32512;
-     _G_MINREALP = 256;
-     POSIT_EXTRA_BITS_SHIFT = 57;
-     POSIT_EXTRA_BITS_MASK = 0x00FFFFFFFFFFFFFF;
-     POSIT_HALFWAY_BIT_MASK = 0x0100000000000000;
-
-    switch(es) {
-     case 1  :
-      _G_USEED = 4;
-      _G_USEED_ZEROS = 2;
-      POSIT_EXPONENT_MASK = 1;
-      _G_MAXREAL_INT = 0x45800000;
-      _G_MINREAL_INT = 0x39800000;
-        break; //optional
-     case 2  :
-      _G_USEED = 16;
-      _G_USEED_ZEROS = 4;
-      POSIT_EXPONENT_MASK = 3;
-      _G_MAXREAL_INT = 0x4B800000;
-      _G_MINREAL_INT = 0x33800000;
-        break; //optional
-     case 0  :      
-           _G_USEED = 2;
-          _G_USEED_ZEROS = 1;
-          POSIT_EXPONENT_MASK = 0;
-          _G_MAXREAL_INT = 0x42800000;
-          _G_MINREAL_INT = 0x3C800000; 
-        break;
-     default : //Optional
-          //no case;
-          printf("unexpected posit config\n");
-          exit(1);
-        }
-
-  } else if (nsize == 6){
-     _G_POSIT_SHIFT_AMOUNT = 10;
-     _G_MAXREALP = ((1 << (_G_NBITS - 1)) - 1) << _G_POSIT_SHIFT_AMOUNT;
-     _G_MINREALP = (1 << _G_POSIT_SHIFT_AMOUNT);
-     POSIT_EXTRA_BITS_SHIFT =  (64 - _G_NBITS + 1);
-     POSIT_EXTRA_BITS_MASK = 0x03FFFFFFFFFFFFFF;
-     POSIT_HALFWAY_BIT_MASK = 0x0400000000000000;
-
-    switch(es) {
-     case 1  :
-      _G_USEED = 4;
-      _G_USEED_ZEROS = 2;
-      POSIT_EXPONENT_MASK = 1;
-
-      _G_MAXREAL_INT = 0x43800000;
-      _G_MINREAL_INT = 0x3b800000;
-        break; //optional
-     case 2  :
-      _G_USEED = 16;
-      _G_USEED_ZEROS = 4;
-      POSIT_EXPONENT_MASK = 3;
-      _G_MAXREAL_INT = 0x47800000;
-      _G_MINREAL_INT = 0x37800000;
-        break; //optional
-
-     default : //Optional
-          //no case;
-          printf("unexpected posit config\n");
-          exit(1);
-    }
-
-  } else if (nsize == 10){
-     _G_POSIT_SHIFT_AMOUNT = 6;
-     _G_MAXREALP = 32704;
-     _G_MINREALP = 64;
-     POSIT_EXTRA_BITS_SHIFT = 55;
-     POSIT_EXTRA_BITS_MASK = 0x003FFFFFFFFFFFFF;
-     POSIT_HALFWAY_BIT_MASK = 0x0040000000000000;
-    switch(es) {
-     case 1  :
-      _G_USEED = 4;
-      _G_USEED_ZEROS = 2;
-      POSIT_EXPONENT_MASK = 1;
-      _G_MAXREAL_INT = 0x47800000;
-      _G_MINREAL_INT = 0x37800000;
-        break; //optional
-     case 2  :
-      _G_USEED = 16;
-      _G_USEED_ZEROS = 4;
-      POSIT_EXPONENT_MASK = 3;
-      _G_MAXREAL_INT = 0x4F800000;
-      _G_MINREAL_INT = 0x2F800000;
-        break; //optional
-
-     default : //Optional
-          //no case;
-          printf("unexpected posit config\n");
-          exit(1);
-      }
-  } else if (nsize == 4){
-     _G_POSIT_SHIFT_AMOUNT = 12;
-     _G_MAXREALP = ((1 << (_G_NBITS - 1)) - 1) << _G_POSIT_SHIFT_AMOUNT;
-     _G_MINREALP = (1 << _G_POSIT_SHIFT_AMOUNT);
-     POSIT_EXTRA_BITS_SHIFT =  (64 - _G_NBITS + 1);
-     POSIT_EXTRA_BITS_MASK = 0x0FFFFFFFFFFFFFFF;
-     POSIT_HALFWAY_BIT_MASK = 0x1000000000000000;
-    switch(es) {
-     case 1  :
-      _G_USEED = 4;
-      _G_USEED_ZEROS = 2;
-      POSIT_EXPONENT_MASK = 1;
-      _G_MAXREAL_INT = 0x41800000; // 16
-      _G_MINREAL_INT = 0x3d800000; // 0.0625
-        break; //optional
-     case 2  :
-      _G_USEED = 16;
-      _G_USEED_ZEROS = 4;
-      POSIT_EXPONENT_MASK = 3;
-      _G_MAXREAL_INT = 0x43800000; // 256
-      _G_MINREAL_INT = 0x3b800000; // 1/256
-        break; //optional
-
-     default : //Optional
-          //no case;
-          printf("unexpected posit config\n");
-          exit(1);
-      }
-  }
-  else {
+  if (nsize <= 16 ) {
+    _G_POSIT_SHIFT_AMOUNT = FP16_LIMB_SIZE - nsize;
+    _G_MAXREALP = ((1 << (nsize - 1)) - 1) << _G_POSIT_SHIFT_AMOUNT;
+    _G_MINREALP = 1 << _G_POSIT_SHIFT_AMOUNT;
+    POSIT_EXTRA_BITS_SHIFT = UNSIGNED_LONG_LONG_SIZE - nsize + 1;
+    POSIT_EXTRA_BITS_MASK = (1UL << (UNSIGNED_LONG_LONG_SIZE - nsize)) - 1;
+    POSIT_HALFWAY_BIT_MASK = 1UL << (UNSIGNED_LONG_LONG_SIZE - nsize);
+    _G_USEED = 1 << (1 << es);
+    _G_USEED_ZEROS = (1 << es);
+    POSIT_EXPONENT_MASK = _G_USEED_ZEROS - 1;
+    _G_MAXREAL_INT = ((_G_USEED_ZEROS * (nsize - 2)) + SINGLE_PRECISION_BIAS) << FLOAT_EXPONENT_SHIFT;
+    _G_MINREAL_INT = ((_G_USEED_ZEROS * (2 - nsize)) + SINGLE_PRECISION_BIAS) << FLOAT_EXPONENT_SHIFT;
+  } else {
     printf("unexpected posit config\n");
     exit(1);
   }
