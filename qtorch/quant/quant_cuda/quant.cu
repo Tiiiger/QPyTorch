@@ -28,6 +28,7 @@ Tensor get_max_entry(Tensor a, int dim) {
 }
 
 Tensor block_quantize_stochastic_cuda(Tensor a, int wl, int dim) {
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
   int64_t size = a.numel();
@@ -46,6 +47,7 @@ Tensor block_quantize_stochastic_cuda(Tensor a, int wl, int dim) {
 }
 
 Tensor block_quantize_nearest_cuda(Tensor a, int wl, int dim) {
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
 
@@ -62,6 +64,7 @@ Tensor block_quantize_nearest_cuda(Tensor a, int wl, int dim) {
 }
 
 Tensor block_quantize_sim_stochastic_cuda(Tensor a, int wl) {
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   auto rand_probs = rand_like(a);
   int64_t size = a.numel();
@@ -80,6 +83,7 @@ Tensor block_quantize_sim_stochastic_cuda(Tensor a, int wl) {
 }
 
 Tensor block_quantize_sim_nearest_cuda(Tensor a, int wl) {
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
   int64_t size = a.numel();
@@ -98,6 +102,7 @@ Tensor block_quantize_sim_nearest_cuda(Tensor a, int wl) {
 
 Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = zeros_like(a);
   auto rand_ints = randint_like(a, INT_MAX, device(kCUDA).dtype(kInt));
   int size = a.numel();
@@ -115,6 +120,7 @@ Tensor float_quantize_stochastic_cuda(Tensor a, int man_bits, int exp_bits) {
 
 Tensor float_quantize_nearest_cuda(Tensor a, int man_bits, int exp_bits) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = zeros_like(a);
   int size = a.numel();
   int blockSize = 1024;
@@ -137,6 +143,7 @@ void fixed_min_max(int wl, int fl, bool symmetric, float* t_min, float* t_max) {
 
 Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool use_clamp, bool symmetric) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   auto rand_probs = rand_like(a);
   int64_t size = a.numel();
@@ -159,6 +166,7 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl, bool use_c
 
 Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool use_clamp, bool symmetric) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
   int sigma = -fl;
@@ -179,6 +187,7 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl, bool use_clam
 
 std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl, bool symmetric) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = zeros_like(a);
   auto rand_probs = rand_like(a);
   auto m = zeros_like(a, a.options().dtype(kByte));
@@ -202,6 +211,7 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(Tensor a, i
 
 std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl, bool symmetric) {
   // use external random number right now
+  cudaSetDevice(a.get_device());
   auto o = at::zeros_like(a);
   auto m = zeros_like(a, a.options().dtype(kByte));
   int64_t size = a.numel();
