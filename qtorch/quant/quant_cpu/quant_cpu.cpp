@@ -463,18 +463,18 @@ Tensor posit_quantize_nearest(Tensor a, int nsize, int es, float scale)
 
   generate_posit_constants(nsize, es, int32_constants, int64_constants);
 
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i]*scale;
-    
+
     fp16 temp = fp32tofp16(temp_input, int32_constants, int64_constants);
     temp_input = fp16tofp32(temp, int32_constants, int64_constants);
-    
+
     o_array[i] = temp_input/scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -494,21 +494,21 @@ Tensor posit_sigmoid(Tensor a, int nsize, int es, float scale)
   //only works on nsize = 8 or 16
   generate_posit_constants(nsize, 0, int32_constants, int64_constants);
 
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i];//*scale;
-    
+
     fp16 temp = fp32tofp16(temp_input, int32_constants, int64_constants);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32(temp, int32_constants, int64_constants);
-    
+
     o_array[i] = temp_input;///scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -524,23 +524,23 @@ Tensor posit_tanh(Tensor a, int nsize, int es, float scale)
   //only works on nsize = 8 or 16
   generate_posit_constants(nsize, 0, int32_constants, int64_constants);
 
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i];//*scale;
     //tanh(x)=2g(2x)−1
     fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32(temp, int32_constants, int64_constants);
-    
+
     temp_input = temp_input * 2 - 1 ;
-    
+
     o_array[i] = temp_input;///scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -557,39 +557,39 @@ Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
   //only works on nsize = 8 or 16
   generate_posit_constants(nsize, 0, int32_constants, int64_constants);
 
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i];//*scale;
     //tanh(x)=2g(2x)−1
     fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32(temp, int32_constants, int64_constants);
-    
+
     temp_input = temp_input * 2 - 1 ;
 
       if (temp_input > 0.6)
           temp_input = temp_input*1.07;
-      
+
       if (temp_input < -0.6)
           temp_input = temp_input*1.07;
-      
+
       if (temp_input > 1)
           temp_input = 1;
       if (temp_input < -1)
           temp_input = -1;
-      
 
-      
+
+
       o_array[i] = temp_input;///scale;
-   
+
   }
-    
+
   return o;
 }
-*/ 
+*/
 
 Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
 {
@@ -602,36 +602,36 @@ Tensor posit_tanh_enhanced(Tensor a, int nsize, int es, float scale)
   //only works on nsize = 8 or 16
   generate_posit_constants(nsize, 0, int32_constants, int64_constants);
 
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i];//*scale;
     //tanh(x)=2g(2x)−1
     fp16 temp = fp32tofp16(2*temp_input, int32_constants, int64_constants);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32(temp, int32_constants, int64_constants);
-    
+
     temp_input = temp_input * 2 - 1 ;
 
       if (temp_input > 0.7583)
           temp_input = temp_input+0.06795;
-      
+
       if (temp_input < -0.7583)
           temp_input = temp_input-0.06795;
-      
+
       if (temp_input > 1)
           temp_input = 1;
       if (temp_input < -1)
           temp_input = -1;
-      
 
-      
+
+
       o_array[i] = temp_input;///scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -642,7 +642,7 @@ float new_format_quantize_nearest(float input){
                1.0/16,  9.0/128, 5.0/64, 3.0/32,    7.0/64,    1.0/8, 9.0/64, 3.0/16, 1.0/4, 3.0/8, 1.0/2, 1.0};
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i<32; i ++){
@@ -651,17 +651,17 @@ float new_format_quantize_nearest(float input){
              min_abs_err = abs_err;
              min_constant = constants[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
 /*custom table lookup with given configurable constants codebook table having contant_size elements*/
@@ -669,7 +669,7 @@ float configurable_table_quantize_nearest(float input, float* constants, int con
 
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i<constant_size; i ++){
@@ -678,27 +678,50 @@ float configurable_table_quantize_nearest(float input, float* constants, int con
              min_abs_err = abs_err;
              min_constant = constants[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
+/*custom table lookup with given configurable constants codebook table having contant_size elements*/
+float configurable_table_quantize_rounding_hint_f(float input, float* constants, float* rounding_hints, int constant_size){
+
+    float result = 0.0;
+    if (input != 0.0){
+      float min_constant = 0.0;
+      for (int i = 0; i<constant_size; i ++){
+          //float abs_err = fabs(constants[i] - fabs(input));
+          if (fabs(input) > rounding_hints[i])
+            min_constant = constants[i];
+      }
+
+      if (input < 0)
+          result = - min_constant;
+      else
+          result = min_constant;
+    }
+
+    return result;
+
+}
+
+
 float act_format_quantize_nearest(float input){
-    
+
     float constants[32] = {1.0/4096, 1.0/2048, 1.0/1024, 1.0/512, 1.0/256, 1.0/128, 1.0/64, 1.0/32, 1.0/16, 1.0/8, 3.0/16,
                            1.0/4, 5.0/16, 3.0/8, 7.0/16, 1.0/2, 9.0/16, 5.0/8, 3.0/4, 7.0/8, 1.0, 9.0/8, 5.0/4, 3.0/2,
                            7.0/4, 2.0, 9.0/4, 3.0, 4.0, 6.0, 8.0, 16.0};
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i<32; i ++){
@@ -707,17 +730,17 @@ float act_format_quantize_nearest(float input){
              min_abs_err = abs_err;
              min_constant = constants[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
 Tensor new_format_quantize(Tensor a, float scale)
@@ -731,13 +754,13 @@ Tensor new_format_quantize(Tensor a, float scale)
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i]*scale;
-    
+
     temp_input = new_format_quantize_nearest(temp_input);
-    
+
     o_array[i] = temp_input/scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -752,13 +775,13 @@ Tensor act_format_quantize(Tensor a, float scale)
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i]*scale;
-    
+
     temp_input = act_format_quantize_nearest(temp_input);
-    
+
     o_array[i] = temp_input/scale;
-   
+
   }
-    
+
   return o;
 }
 
@@ -768,20 +791,46 @@ Tensor configurable_table_quantize(Tensor a, Tensor lookup_table, float scale)
   auto o = zeros_like(a);
   auto o_array = o.data_ptr<float>();
   int size = a.numel();
-    
+
   int table_size = lookup_table.numel();
   auto contants = lookup_table.data_ptr<float>();
-    
+
   for (int64_t i = 0; i < size; i++)
   {
     float temp_input = a_array[i]*scale;
-    
+
     temp_input = configurable_table_quantize_nearest(temp_input, contants, table_size);
-    
+
     o_array[i] = temp_input/scale;
-   
+
   }
-    
+
+  return o;
+}
+
+Tensor configurable_table_quantize_rounding_hint(Tensor a, Tensor lookup_table, Tensor rounding_hint, float scale)
+{
+  auto a_array = a.data_ptr<float>();
+  auto o = zeros_like(a);
+  auto o_array = o.data_ptr<float>();
+  int size = a.numel();
+
+  int table_size = lookup_table.numel();
+
+  auto contants = lookup_table.data_ptr<float>();
+
+  auto rounding_hints = rounding_hint.data_ptr<float>();
+
+  for (int64_t i = 0; i < size; i++)
+  {
+    float temp_input = a_array[i]*scale;
+
+    temp_input = configurable_table_quantize_rounding_hint_f (temp_input, contants, rounding_hints, table_size);
+
+    o_array[i] = temp_input/scale;
+
+  }
+
   return o;
 }
 
@@ -795,12 +844,13 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
   m.def("fixed_point_quantize_nearest", &fixed_point_quantize_nearest, "Fixed Point Number Nearest Neighbor Quantization (CPU)");
   m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CPU)");
   m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
-  m.def("posit_quantize_nearest", &posit_quantize_nearest, "Low-Bitwidth Posit Quantization (CPU)");    
-  m.def("posit_sigmoid", &posit_sigmoid, "Low-Bitwidth Posit Sigmoid (CPU)");  
-  m.def("posit_tanh", &posit_tanh, "Low-Bitwidth Posit Tanh (CPU)");      
-  m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit Tanh (CPU)");   
-  m.def("new_format_quantize", &new_format_quantize, "New table-lookup Format (CPU)");   
-  m.def("act_format_quantize", &act_format_quantize, "New table-lookup Format (Activation CPU)"); 
-  m.def("configurable_table_quantize", &configurable_table_quantize, "Configurable table-lookup Format (CPU)"); 
-//  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");     
+  m.def("posit_quantize_nearest", &posit_quantize_nearest, "Low-Bitwidth Posit Quantization (CPU)");
+  m.def("posit_sigmoid", &posit_sigmoid, "Low-Bitwidth Posit Sigmoid (CPU)");
+  m.def("posit_tanh", &posit_tanh, "Low-Bitwidth Posit Tanh (CPU)");
+  m.def("posit_tanh_enhanced", &posit_tanh_enhanced, "Low-Bitwidth Posit Tanh (CPU)");
+  m.def("new_format_quantize", &new_format_quantize, "New table-lookup Format (CPU)");
+  m.def("act_format_quantize", &act_format_quantize, "New table-lookup Format (Activation CPU)");
+  m.def("configurable_table_quantize", &configurable_table_quantize, "Configurable table-lookup Format (CPU)");
+  m.def("configurable_table_quantize_rounding_hint", &configurable_table_quantize_rounding_hint, "Configurable table-lookup Format with hints for rounding for every interval (CPU)");
+//  m.def("posit_tanh_enhanced2", &posit_tanh_enhanced2, "Low-Bitwidth Posit Tanh (CPU)");
 }

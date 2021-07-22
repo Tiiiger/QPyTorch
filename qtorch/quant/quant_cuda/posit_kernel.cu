@@ -10,9 +10,10 @@
 __constant__ uint32_t	int32_constants[11];
 __constant__ uint64_t	int64_constants[2];
 
-//table lookup data, normally we use 5 bit (32 values). But this array size needs to be hardcoded before compilation. 
+//table lookup data, normally we use 5 bit (32 values). But this array size needs to be hardcoded before compilation.
 //Use 128 to support up to 7 bits usigned table lookup.(the lookup assume 1 bit automaticcally used for sign => max 8 bits supported by this table)
-__constant__ float table_lookup[128]; 
+__constant__ float table_lookup[128];
+__constant__ float rounding_hint[128];
 
 #define SIGN_MASK 0x8000
 #define FLOAT_SIGN_MASK 0x80000000
@@ -201,10 +202,10 @@ __global__ void posit_kernel_nearest( float* input, float*output, float scale,  
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index]*scale;
-    
+
     fp16 temp = fp32tofp16_gpu(temp_input);
     temp_input = fp16tofp32_gpu(temp);
-    
+
     output[index] = temp_input/scale;
 
   }
@@ -217,7 +218,7 @@ __device__ float new_format_quantize_nearest(float input){
                1.0/16,  9.0/128, 5.0/64, 3.0/32,    7.0/64,    1.0/8, 9.0/64, 3.0/16, 1.0/4, 3.0/8, 1.0/2, 1.0};
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i<32; i ++){
@@ -226,17 +227,17 @@ __device__ float new_format_quantize_nearest(float input){
              min_abs_err = abs_err;
              min_constant = constants[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
 __device__ float act_format_quantize_nearest(float input){
@@ -246,7 +247,7 @@ __device__ float act_format_quantize_nearest(float input){
                            7.0/4, 2.0, 9.0/4, 3.0, 4.0, 6.0, 8.0, 16.0};
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i<32; i ++){
@@ -255,24 +256,24 @@ __device__ float act_format_quantize_nearest(float input){
              min_abs_err = abs_err;
              min_constant = constants[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
 __device__ float configurable_table_quantize_nearest(float input, int table_size){
 
     float result = 0.0;
     if (input != 0.0){
-        
+
       float min_abs_err = 1e5;
       float min_constant = 0.0;
       for (int i = 0; i < table_size; i ++){
@@ -281,28 +282,49 @@ __device__ float configurable_table_quantize_nearest(float input, int table_size
              min_abs_err = abs_err;
              min_constant = table_lookup[i];
           }
-              
+
       }
-        
+
       if (input < 0)
           result = - min_constant;
       else
           result = min_constant;
     }
-    
+
     return result;
-              
+
 }
 
+
+__device__ float configurable_table_quantize_rounding_hint(float input, int table_size){
+
+    float result = 0.0;
+    if (input != 0.0){
+      float min_constant = 0.0;
+      for (int i = 0; i<table_size; i ++){
+          //float abs_err = fabs(constants[i] - fabs(input));
+          if (fabsf(input) > rounding_hint[i])
+            min_constant = table_lookup[i];
+            //printf( " %f %f %f \n", input , rounding_hint[i] , min_constant);
+      }
+
+      if (input < 0)
+          result = - min_constant;
+      else
+          result = min_constant;
+    }
+
+    return result;
+}
 
 //template <typename scalar_t>
 __global__ void newformat_kernel_nearest( float* input, float*output, float scale,  size_t input_size) {
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index]*scale;
-    
+
     temp_input = new_format_quantize_nearest(temp_input);
-    
+
     output[index] = temp_input/scale;
 
   }
@@ -312,9 +334,9 @@ __global__ void actformat_kernel_nearest( float* input, float*output, float scal
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index]*scale;
-    
+
     temp_input = act_format_quantize_nearest(temp_input);
-    
+
     output[index] = temp_input/scale;
 
   }
@@ -324,9 +346,22 @@ __global__ void configurable_table_kernel_nearest( float* input, float*output, f
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index]*scale;
-    
+
     temp_input = configurable_table_quantize_nearest(temp_input, table_size);
-    
+
+    output[index] = temp_input/scale;
+
+  }
+}
+
+
+__global__ void configurable_quantize_kernel_rounding_hint( float* input, float*output, float scale,  size_t input_size, size_t table_size) {
+  const int index = blockIdx.x * blockDim.x + threadIdx.x;
+  if (index < input_size) {
+    float temp_input = input[index]*scale;
+
+    temp_input = configurable_table_quantize_rounding_hint(temp_input, table_size);
+
     output[index] = temp_input/scale;
 
   }
@@ -336,15 +371,15 @@ __global__ void sigmoid_kernel( float* input, float*output, float scale,  size_t
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index];//*scale; //unused scale val
-    
-  
+
+
     fp16 temp = fp32tofp16_gpu(temp_input);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32_gpu(temp);
- 
- 
+
+
     output[index] = temp_input;///scale;
 
   }
@@ -354,16 +389,16 @@ __global__ void tanh_kernel( float* input, float*output, float scale,  size_t in
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index];//*scale; //unused scale val
-    
+
     fp16 temp = fp32tofp16_gpu(2*temp_input);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32_gpu(temp);
-    
+
     temp_input = temp_input * 2 - 1 ;
- 
- 
+
+
     output[index] = temp_input;///scale;
 
   }
@@ -373,27 +408,27 @@ __global__ void tanh_enhanced_kernel( float* input, float*output, float scale,  
   const int index = blockIdx.x * blockDim.x + threadIdx.x;
   if (index < input_size) {
     float temp_input = input[index];//*scale; //unused scale val
-    
+
     //tanh(x)=2g(2x)−1
     fp16 temp = fp32tofp16_gpu(2*temp_input);
-      
+
     temp = compute_sigmoid (temp);
-      
+
     temp_input = fp16tofp32_gpu(temp);
-    
+
     temp_input = temp_input * 2 - 1 ;
 
       if (temp_input > 0.7583)
           temp_input = temp_input+0.06795;
-      
+
       if (temp_input < -0.7583)
           temp_input = temp_input-0.06795;
-      
+
       if (temp_input > 1)
           temp_input = 1;
       if (temp_input < -1)
           temp_input = -1;
-      
+
     output[index] = temp_input;///scale;
 
   }
@@ -438,7 +473,7 @@ void actformat_kernel_nearest_wrapper(float *__restrict__ a,
 
 
 void configurable_quantize_kernel_nearest_wrapper(float *__restrict__ a,
-                                    float *o, 
+                                    float *o,
                                     /*table lookup data*/
                                     float *constants,
                                     int table_size
@@ -446,6 +481,26 @@ void configurable_quantize_kernel_nearest_wrapper(float *__restrict__ a,
 
     cudaMemcpyToSymbol(table_lookup, &constants[0], table_size * sizeof( float ), 0 );
     configurable_table_kernel_nearest<<<blockNums, blockSize>>>(a,
+                                                     o,
+                                                     scale,
+                                                     size,
+                                                     table_size
+                                                     );
+
+}
+
+void configurable_quantize_kernel_rounding_hint_wrapper(float *__restrict__ a,
+                                    float *o,
+                                    /*table lookup data*/
+                                    float *constants,
+                                    float *round_hints,
+                                    int table_size
+                                    , int size, float scale, int blockNums, int blockSize){
+
+    cudaMemcpyToSymbol(table_lookup, &constants[0], table_size * sizeof( float ), 0 );
+    cudaMemcpyToSymbol(rounding_hint, &round_hints[0], table_size * sizeof( float ), 0 );
+
+    configurable_quantize_kernel_rounding_hint<<<blockNums, blockSize>>>(a,
                                                      o,
                                                      scale,
                                                      size,

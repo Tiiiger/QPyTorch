@@ -13,7 +13,7 @@ quant_cpu = load(
         os.path.join(current_path, "quant_cpu/quant_cpu.cpp"),
         os.path.join(current_path, "quant_cpu/bit_helper.cpp"),
         os.path.join(current_path, "quant_cpu/sim_helper.cpp"),
-        
+
     ],
     verbose=True,
 )
@@ -36,7 +36,7 @@ if torch.cuda.is_available():
 else:
     quant_cuda = quant_cpu
 
-__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced", "new_format_quantize", "act_format_quantize", "configurable_table_quantize"]
+__all__ = ["fixed_point_quantize", "block_quantize", "float_quantize", "quantizer", "posit_quantize", "posit_sigmoid", "posit_tanh", "posit_tanh_enhanced", "new_format_quantize", "act_format_quantize", "configurable_table_quantize", "configurable_table_quantize_rounding_hint", "configurable_table_quantize_geomean"]
 
 
 def assert_wl_fl(wl, fl, stage=""):
@@ -102,7 +102,7 @@ def quantizer(
             elif type(forward_number) == Posit:
                 forward_quant = lambda x, quant_module: quant_module.posit_quantize_nearest(
                     x, forward_number.nsize, forward_number.es, forward_number.scale
-                )    
+                )
         elif forward_rounding == "stochastic":
             if type(forward_number) == BlockFloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.block_quantize_stochastic(
@@ -119,7 +119,7 @@ def quantizer(
             elif type(forward_number) == Posit:
                 forward_quant = lambda x, quant_module: quant_module.posit_quantize_nearest(
                     x, forward_number.nsize, forward_number.es, forward_number.scale
-                )        
+                )
     else:
         if type(forward_number) == FixedPoint or forward_number == None:
             assert (
@@ -153,7 +153,7 @@ def quantizer(
             backward_quant = lambda a, quant_module: quant_module.posit_quantize_nearest(
                 a, backward_number.nsize, backward_number.es, backward_number.scale
             )
-            
+
     elif backward_rounding == "stochastic":
         if type(backward_number) == BlockFloatingPoint:
             backward_quant = lambda a, quant_module: quant_module.block_quantize_stochastic(
@@ -170,7 +170,7 @@ def quantizer(
         elif type(backward_number) == Posit:
             backward_quant = lambda a, quant_module: quant_module.posit_quantize_nearest(
                 a, backward_number.nsize, backward_number.es, backward_number.scale
-            )            
+            )
 
     if clamping_grad_zero == False:
 
@@ -449,6 +449,40 @@ def configurable_table_quantize(x, table_lookup, scale = 1.0, rounding="nearest"
     quant_module = get_module(x)
     out = quant_module.configurable_table_quantize(x.contiguous(), table_lookup.contiguous(), scale)
     return out
+
+def configurable_table_quantize_geomean (x, table_lookup, scale = 1.0):
+    """
+        round based on geomean instead of nearest rounding
+    """
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
+    quant_module = get_module(x)
+    table_np = table_lookup.numpy()
+    round_hints = [1e-4]
+    for i in range(1,len(table_np)):
+        round_hints.append((table_np[i]*table_np[i-1])**0.5)
+
+    #print (round_hints)
+    round_hints =  torch.tensor(round_hints, dtype = torch.float)
+    out = quant_module.configurable_table_quantize_rounding_hint(x.contiguous(), table_lookup.contiguous(), round_hints.contiguous(), scale)
+    return out
+
+def configurable_table_quantize_rounding_hint(x, table_lookup, rounding_hint, scale = 1.0):
+    """
+    Quantize a single precision Floating Point into low-precision Floating Point
+
+    Args:
+        - :attr: `x` (torch.Tensor) : the single precision number(torch.Tensor) to be quantized
+        - :attr: `table_lookup` (torch.Tensor) : the table for quantization (quantized values)
+        - :attr: `rounding_hint` (torch.Tensor) : hints for rounding to table entries. not mid point or any standard rounding methods
+
+    Returns:
+        - a quantized low-precision posit tensor (torch.Tensor)
+    """
+    assert isinstance(x, torch.Tensor), "x is not a single precision Floating Point Tensor"
+    quant_module = get_module(x)
+    out = quant_module.configurable_table_quantize_rounding_hint(x.contiguous(), table_lookup.contiguous(), rounding_hint.contiguous(), scale)
+    return out
+
 
 '''
 def posit_tanh_enhanced2(x, nsize, es=0, scale = 1.0, rounding="nearest"):

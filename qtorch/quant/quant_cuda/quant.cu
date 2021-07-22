@@ -171,13 +171,36 @@ Tensor configurable_table_quantize_cuda(Tensor a, Tensor lookup_table, float sca
   int size = a.numel();
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
-  
+
   int table_size = lookup_table.numel();
- 
-  
+
+
   configurable_quantize_kernel_nearest_wrapper (a.data_ptr<float>(),
                                                  o.data_ptr<float>(),
                                                  lookup_table.data_ptr<float>(),
+                                                 table_size,
+                                                 size, scale ,
+                                                 blockNums,
+                                                 blockSize
+                                          );
+
+  return o;
+}
+
+Tensor configurable_table_quantize_rounding_hint_cuda(Tensor a, Tensor lookup_table, Tensor rounding_hint, float scale) {
+
+  auto o = zeros_like(a);
+  int size = a.numel();
+  int blockSize = 1024;
+  int blockNums = (size + blockSize - 1) / blockSize;
+
+  int table_size = lookup_table.numel();
+
+
+  configurable_quantize_kernel_rounding_hint_wrapper (a.data_ptr<float>(),
+                                                 o.data_ptr<float>(),
+                                                 lookup_table.data_ptr<float>(),
+                                                 rounding_hint.data_ptr<float>(),
                                                  table_size,
                                                  size, scale ,
                                                  blockNums,
