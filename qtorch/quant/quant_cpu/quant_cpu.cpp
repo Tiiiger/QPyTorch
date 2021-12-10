@@ -1,5 +1,6 @@
 #include "quant_cpu.h"
 #include <assert.h>
+#include <math.h>
 #include <random>
 #include <torch/torch.h>
 #include <tuple>
@@ -37,6 +38,20 @@ template <typename T> T clamp_helper(T a, T min, T max) {
     return a;
 }
 
+int optiwl(float floats[], int len) {
+  int max = 0, iwl = 0;
+  for (int i = 0; i < len; i++) {
+    int n = floats[i];
+    if (n < 0)
+      n *= (-1);
+    if (max < n)
+      max = n;
+  }
+  if (max)
+    iwl = log2(max) + 1;
+  return iwl;
+}
+
 void printBits(size_t const size, void const *const ptr) {
   unsigned char *b = (unsigned char *)ptr;
   unsigned char byte;
@@ -65,7 +80,8 @@ template <typename T> T clamp_mask_helper(T a, T min, T max, uint8_t *mask) {
 }
 
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
+fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric,
+                                     bool dynamic_precision) {
   CHECK_INPUT(a);
   auto r = rand_like(a);
   auto a_array = a.data_ptr<float>();
@@ -75,8 +91,15 @@ fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
   auto m = zeros_like(a, torch::CPU(kByte));
   auto m_array = m.data_ptr<uint8_t>();
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int opt_iwl = optiwl(a_array, size);
+    fl = wl - opt_iwl - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i = 0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
@@ -87,7 +110,8 @@ fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
 }
 
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric) {
+fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric,
+                                  bool dynamic_precision) {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
@@ -95,8 +119,15 @@ fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric) {
   auto m = zeros_like(a, torch::CPU(kByte));
   auto m_array = m.data_ptr<uint8_t>();
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int opt_iwl = optiwl(a_array, size);
+    fl = wl - opt_iwl - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i = 0; i < size; i++) {
     o_array[i] = round(a_array[i], 0.5, sigma);
@@ -107,7 +138,7 @@ fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric) {
 }
 
 Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp,
-                                       bool symmetric) {
+                                       bool symmetric, bool dynamic_precision) {
   CHECK_INPUT(a);
   auto r = rand_like(a);
   auto a_array = a.data_ptr<float>();
@@ -115,8 +146,15 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp,
   Tensor o = zeros_like(a);
   auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int opt_iwl = optiwl(a_array, size);
+    fl = wl - opt_iwl - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i = 0; i < size; i++) {
     o_array[i] = round(a_array[i], r_array[i], sigma);
@@ -128,14 +166,21 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp,
 }
 
 Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp,
-                                    bool symmetric) {
+                                    bool symmetric, bool dynamic_precision) {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
   Tensor o = zeros_like(a);
   auto o_array = o.data_ptr<float>();
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int opt_iwl = optiwl(a_array, size);
+    fl = wl - opt_iwl - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   for (int64_t i = 0; i < size; i++) {
     o_array[i] = round(a_array[i], 0.5, sigma);

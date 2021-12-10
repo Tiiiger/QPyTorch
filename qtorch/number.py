@@ -55,7 +55,7 @@ class FixedPoint(Number):
         - :attr: symmetric (bool) : whether to make the representable range symmetric
     """
 
-    def __init__(self, wl, fl, clamp=True, symmetric=False):
+    def __init__(self, wl, fl, clamp=True, symmetric=False, dynamic_precision=False):
         assert wl > 0, "invalid bits for word length: {}".format(wl)
         assert fl > 0, "invalid bits for fractional length: {}".format(fl)
         assert type(symmetric) == bool, "invalid type for clamping choice: {}".format(
@@ -64,10 +64,14 @@ class FixedPoint(Number):
         assert type(symmetric) == bool, "invalid type for symmetric: {}".format(
             type(symmetric)
         )
+        assert type(dynamic_precision) == bool, "invalid type for dynamic precision: {}".format(
+            type(dynamic_precision)
+        )
         self.wl = wl
         self.fl = fl
         self.clamp = clamp
         self.symmetric = symmetric
+        self.dynamic_precision = dynamic_precision
 
     def __str__(self):
         return "FixedPoint (wl={:d}, fl={:d})".format(self.wl, self.fl)

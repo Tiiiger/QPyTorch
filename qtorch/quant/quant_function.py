@@ -53,6 +53,7 @@ def quantizer(
     backward_number=None,
     forward_rounding="stochastic",
     backward_rounding="stochastic",
+    dynamic_precision=False,
     clamping_grad_zero=False,
     backward_hooks=[],
 ):
@@ -90,6 +91,7 @@ def quantizer(
             elif type(forward_number) == FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest(
                     x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric,
+                    dynamic_precision,
                 )
             elif type(forward_number) == FloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_nearest(
@@ -103,6 +105,7 @@ def quantizer(
             elif type(forward_number) == FixedPoint:
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic(
                     x, forward_number.wl, forward_number.fl, forward_number.clamp, forward_number.symmetric,
+                    dynamic_precision,
                 )
             elif type(forward_number) == FloatingPoint:
                 forward_quant = lambda x, quant_module: quant_module.float_quantize_stochastic(
@@ -115,11 +118,11 @@ def quantizer(
             ), "must use clamping if zeroing out clamped gradient"
             if forward_rounding == "nearest":
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_nearest_mask(
-                    x, forward_number.wl, forward_number.fl, forward_number.symmetric
+                    x, forward_number.wl, forward_number.fl, forward_number.symmetric, dynamic_precision
                 )
             elif forward_rounding == "stochastic":
                 forward_quant = lambda x, quant_module: quant_module.fixed_point_quantize_stochastic_mask(
-                    x, forward_number.wl, forward_number.fl, forward_number.symmetric
+                    x, forward_number.wl, forward_number.fl, forward_number.symmetric, dynamic_precision
                 )
         else:
             raise ValueError("zeroing clamping gradient only support fixed point.")
@@ -132,6 +135,7 @@ def quantizer(
         elif type(backward_number) == FixedPoint:
             backward_quant = lambda a, quant_module: quant_module.fixed_point_quantize_nearest(
                 a, backward_number.wl, backward_number.fl, backward_number.clamp, backward_number.symmetric,
+                dynamic_precision,
             )
         elif type(backward_number) == FloatingPoint:
             backward_quant = lambda a, quant_module: quant_module.float_quantize_nearest(

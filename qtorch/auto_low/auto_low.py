@@ -186,9 +186,11 @@ def lower(
     backward_number=None,
     forward_rounding="stochastic",
     backward_rounding="stochastic",
+    dynamic_precision=False,
 ):
     quant = Quantizer(
-        forward_number, backward_number, forward_rounding, backward_rounding
+        forward_number, backward_number, forward_rounding, backward_rounding,
+        dynamic_precision,
     )
     lower_func = _get_apply_lower_func(quant, layer_types=layer_types)
     model.apply(lower_func)
@@ -201,11 +203,13 @@ def sequential_lower(
     backward_number=None,
     forward_rounding="stochastic",
     backward_rounding="stochastic",
+    dynamic_precision=False,
 ):
     """Return a new model without touching the old one
     """
     quant = Quantizer(
-        forward_number, backward_number, forward_rounding, backward_rounding
+        forward_number, backward_number, forward_rounding, backward_rounding,
+        dynamic_precision,
     )
 
     lower_func = _get_return_sequential_lower_func(quant, layer_types=layer_types)

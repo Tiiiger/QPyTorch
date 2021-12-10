@@ -12,15 +12,18 @@ using namespace at;
   CHECK_CONTIGUOUS(x)
 
 Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool use_clamp,
-                                    bool symmetric) {
+                                    bool symmetric, bool dynamic_precision) {
   CHECK_INPUT(a);
-  return fixed_point_quantize_nearest_cuda(a, wl, fl, use_clamp, symmetric);
+  return fixed_point_quantize_nearest_cuda(a, wl, fl, use_clamp, symmetric,
+                                           dynamic_precision);
 }
 
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric) {
+fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric,
+                                  bool dynamic_precision) {
   CHECK_INPUT(a);
-  return fixed_point_quantize_nearest_mask_cuda(a, wl, fl, symmetric);
+  return fixed_point_quantize_nearest_mask_cuda(a, wl, fl, symmetric,
+                                                dynamic_precision);
 }
 
 Tensor block_quantize_nearest(Tensor a, int wl, int dim) {
@@ -39,15 +42,18 @@ Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits) {
 }
 
 Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool use_clamp,
-                                       bool symmetric) {
+                                       bool symmetric, bool dynamic_precision) {
   CHECK_INPUT(a);
-  return fixed_point_quantize_stochastic_cuda(a, wl, fl, use_clamp, symmetric);
+  return fixed_point_quantize_stochastic_cuda(a, wl, fl, use_clamp, symmetric,
+                                              dynamic_precision);
 }
 
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric) {
+fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric,
+                                     bool dynamic_precision) {
   CHECK_INPUT(a);
-  return fixed_point_quantize_stochastic_mask_cuda(a, wl, fl, symmetric);
+  return fixed_point_quantize_stochastic_mask_cuda(a, wl, fl, symmetric,
+                                                   dynamic_precision);
 }
 
 Tensor block_quantize_stochastic(Tensor a, int wl, int dim) {

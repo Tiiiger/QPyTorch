@@ -1,15 +1,34 @@
 #include "quant_cuda.h"
 #include "quant_kernel.h"
 #include <ATen/ATen.h>
+#include <algorithm>
 #include <climits>
 #include <cstdlib>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <iostream>
 #include <math.h>
 #include <stdint.h>
 #include <tuple>
 
 using namespace at;
+
+__device__ int subOptIwl(float *__restrict__ a, int len) {
+  int max = 0, iwl = 0;
+  for (int i = 0; i < len; i++) {
+    int n = a[i];
+    if (n < 0)
+      n *= (-1);
+    if (max < n)
+      max = n;
+  }
+  if (max)
+    iwl = log2(max) + 1;
+  return iwl;
+}
+__global__ void optIwl(float *__restrict__ a, int len, int *res) {
+  *res = subOptIwl(a, len);
+}
 
 Tensor get_max_entry(Tensor a, int dim) {
   Tensor max_entry;
@@ -127,17 +146,28 @@ void fixed_min_max(int wl, int fl, bool symmetric, float *t_min, float *t_max) {
 }
 
 Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl,
-                                            bool use_clamp, bool symmetric) {
+                                            bool use_clamp, bool symmetric,
+                                            bool dynamic_precision) {
   // use external random number right now
   auto o = at::zeros_like(a);
   auto rand_probs = rand_like(a);
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int res;
+    int *dev_c;
+    cudaMalloc((void **)&dev_c, sizeof(int));
+    optIwl<<<1, 1>>>(a.data_ptr<float>(), size, dev_c);
+    cudaMemcpy(&res, dev_c, sizeof(int), cudaMemcpyDeviceToHost);
+    fl = wl - res - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
-
   fixed_point_quantize_kernel_stochastic<<<blockNums, blockSize>>>(
       a.data_ptr<float>(), rand_probs.data_ptr<float>(), o.data_ptr<float>(),
       size, sigma, use_clamp, t_min, t_max);
@@ -145,12 +175,24 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl,
 }
 
 Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl,
-                                         bool use_clamp, bool symmetric) {
+                                         bool use_clamp, bool symmetric,
+                                         bool dynamic_precision) {
   // use external random number right now
   auto o = at::zeros_like(a);
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int res;
+    int *dev_c;
+    cudaMalloc((void **)&dev_c, sizeof(int));
+    optIwl<<<1, 1>>>(a.data_ptr<float>(), size, dev_c);
+    cudaMemcpy(&res, dev_c, sizeof(int), cudaMemcpyDeviceToHost);
+    fl = wl - res - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
@@ -161,16 +203,26 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl,
   return o;
 }
 
-std::tuple<Tensor, Tensor>
-fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl,
-                                          bool symmetric) {
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(
+    Tensor a, int wl, int fl, bool symmetric, bool dynamic_precision) {
   // use external random number right now
   auto o = zeros_like(a);
   auto rand_probs = rand_like(a);
   auto m = zeros_like(a, a.options().dtype(kByte));
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int res;
+    int *dev_c;
+    cudaMalloc((void **)&dev_c, sizeof(int));
+    optIwl<<<1, 1>>>(a.data_ptr<float>(), size, dev_c);
+    cudaMemcpy(&res, dev_c, sizeof(int), cudaMemcpyDeviceToHost);
+    fl = wl - res - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;
@@ -182,14 +234,25 @@ fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl,
 }
 
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl,
-                                       bool symmetric) {
+fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl, bool symmetric,
+                                       bool dynamic_precision) {
   // use external random number right now
   auto o = at::zeros_like(a);
   auto m = zeros_like(a, a.options().dtype(kByte));
   int64_t size = a.numel();
-  int sigma = -fl;
+  int sigma;
   float t_min, t_max;
+  if (dynamic_precision) {
+    int res;
+    int *dev_c;
+    cudaMalloc((void **)&dev_c, sizeof(int));
+    optIwl<<<1, 1>>>(a.data_ptr<float>(), size, dev_c);
+    cudaMemcpy(&res, dev_c, sizeof(int), cudaMemcpyDeviceToHost);
+    fl = wl - res - 1;
+    if (fl < 0)
+      fl = 0;
+  }
+  sigma = -fl;
   fixed_min_max(wl, fl, symmetric, &t_min, &t_max);
   int blockSize = 1024;
   int blockNums = (size + blockSize - 1) / blockSize;

@@ -10,7 +10,8 @@ using namespace at;
  * Stochastic Rounding.
  **/
 Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl,
-                                            bool use_clamp, bool symmetric);
+                                            bool use_clamp, bool symmetric,
+                                            bool dynamic_precision);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
@@ -19,7 +20,8 @@ Tensor fixed_point_quantize_stochastic_cuda(Tensor a, int wl, int fl,
  * Nearest Rounding.
  **/
 Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl,
-                                         bool use_clamp, bool symmetric);
+                                         bool use_clamp, bool symmetric,
+                                         bool dynamic_precision);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
@@ -27,9 +29,8 @@ Tensor fixed_point_quantize_nearest_cuda(Tensor a, int wl, int fl,
  *clamping into a mask, with the option of having a symmetric number range
  * Stochastic Rounding.
  **/
-std::tuple<Tensor, Tensor>
-fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl,
-                                          bool symmetric);
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask_cuda(
+    Tensor a, int wl, int fl, bool symmetric, bool dynamic_precision);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
@@ -38,8 +39,8 @@ fixed_point_quantize_stochastic_mask_cuda(Tensor a, int wl, int fl,
  * Nearest Rounding.
  **/
 std::tuple<Tensor, Tensor>
-fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl,
-                                       bool symmetric);
+fixed_point_quantize_nearest_mask_cuda(Tensor a, int wl, int fl, bool symmetric,
+                                       bool dynamic_precision);
 
 /**
  * quantize a FloatTensor into fixed point number with word length [wl]
