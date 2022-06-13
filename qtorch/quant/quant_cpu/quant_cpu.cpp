@@ -19,7 +19,7 @@ enum Mode
   CHECK_CPU(x);        \
   CHECK_CONTIGUOUS(x);
 
-#define RFLOAT_TO_BITS(x) (*reinterpret_cast<unsigned int *>(x))
+#define RFLOAT_TO_BITS(x) (*reinterpret_cast<uint64_t *>(x))
 #define RBITS_TO_FLOAT(x) (*reinterpret_cast<float *>(x))
 #define FLOAT_TO_BITS(f, i)     \
   assert(sizeof f == sizeof i); \
@@ -47,7 +47,7 @@ void printBits(size_t const size, void const * const ptr)
 {
     unsigned char *b = (unsigned char*) ptr;
     unsigned char byte;
-    int i, j;
+    int64_t i, j;
     
     for (i = size-1; i >= 0; i--) {
         for (j = 7; j >= 0; j--) {
@@ -77,7 +77,7 @@ T clamp_mask_helper(T a, T min, T max, uint8_t *mask)
     return a;
 }
 
-std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl, int fl, bool symmetric)
+std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int64_t wl, int64_t fl, bool symmetric)
 {
   CHECK_INPUT(a);
   auto r = rand_like(a);
@@ -99,7 +99,7 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_stochastic_mask(Tensor a, int wl
   return std::make_tuple(o, m);
 }
 
-std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, int fl, bool symmetric)
+std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int64_t wl, int64_t fl, bool symmetric)
 {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
@@ -119,7 +119,7 @@ std::tuple<Tensor, Tensor> fixed_point_quantize_nearest_mask(Tensor a, int wl, i
   return std::make_tuple(o, m);
 }
 
-Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp, bool symmetric)
+Tensor fixed_point_quantize_stochastic(Tensor a, int64_t wl, int64_t fl, bool clamp, bool symmetric)
 {
   CHECK_INPUT(a);
   auto r = rand_like(a);
@@ -142,7 +142,7 @@ Tensor fixed_point_quantize_stochastic(Tensor a, int wl, int fl, bool clamp, boo
   return o;
 }
 
-Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp, bool symmetric)
+Tensor fixed_point_quantize_nearest(Tensor a, int64_t wl, int64_t fl, bool clamp, bool symmetric)
 {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
@@ -163,11 +163,11 @@ Tensor fixed_point_quantize_nearest(Tensor a, int wl, int fl, bool clamp, bool s
   return o;
 }
 
-unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding)
+uint64_t round_bitwise(uint64_t target, int64_t man_bits, Mode rounding)
 {
   
-  unsigned int mask = (1 << (23 - man_bits)) - 1;
-  unsigned int rand_prob;
+  uint64_t mask = (1 << (23 - man_bits)) - 1;
+  uint64_t rand_prob;
   if (rounding == rStochastic)
   {
     rand_prob = (dis(gen)) & mask;
@@ -176,13 +176,13 @@ unsigned int round_bitwise(unsigned int target, int man_bits, Mode rounding)
   {
     rand_prob = 1 << (23 - man_bits - 1);
   }
-  unsigned int add_r = target + rand_prob;
-  unsigned int quantized = add_r & ~mask;
+  uint64_t add_r = target + rand_prob;
+  uint64_t quantized = add_r & ~mask;
   return quantized;
 }
 
 void block_quantize_helper(float *input, float *output, float *max_elem,
-                           int wl, int size, Mode rounding)
+                           int64_t wl, int64_t size, Mode rounding)
 {
   for (int64_t i = 0; i < size; i++)
   {
@@ -211,7 +211,7 @@ void block_quantize_helper(float *input, float *output, float *max_elem,
   }
 }
 
-Tensor get_max_entry(Tensor a, int dim)
+Tensor get_max_entry(Tensor a, int64_t dim)
 {
   Tensor max_entry;
   if (dim == -1)
@@ -233,7 +233,7 @@ Tensor get_max_entry(Tensor a, int dim)
   return max_entry;
 }
 
-Tensor block_quantize_nearest(Tensor a, int wl, int dim)
+Tensor block_quantize_nearest(Tensor a, int64_t wl, int64_t dim)
 {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
@@ -248,7 +248,7 @@ Tensor block_quantize_nearest(Tensor a, int wl, int dim)
   return o;
 }
 
-Tensor block_quantize_stochastic(Tensor a, int wl, int dim)
+Tensor block_quantize_stochastic(Tensor a, int64_t wl, int64_t dim)
 {
   CHECK_INPUT(a);
   auto a_array = a.data_ptr<float>();
@@ -264,24 +264,24 @@ Tensor block_quantize_stochastic(Tensor a, int wl, int dim)
   return o;
 }
 
-Tensor float_quantize(Tensor a, int man_bits, int exp_bits, Mode rounding){
+Tensor float_quantize(Tensor a, int64_t man_bits, int64_t exp_bits, Mode rounding){
   auto a_array = a.data_ptr<float>();
   auto o = zeros_like(a);
   auto o_array = o.data_ptr<float>();
-  int size = a.numel();
+  int64_t size = a.numel();
 
   for (int64_t i = 0; i < size; i++)
   {
-    unsigned int target,quantize_bits;
+    uint64_t target,quantize_bits;
     FLOAT_TO_BITS(a_array[i], target);
     float quantized;
 
-    int target_exp = (target << 1 >> 1 >> 23) -127; 
-    int min_exp = -((1 << (exp_bits - 1)) - 2);
+    int64_t target_exp = (target << 1 >> 1 >> 23) -127; 
+    int64_t min_exp = -((1 << (exp_bits - 1)) - 2);
     bool subnormal = (target_exp < min_exp);
     if (subnormal){
       float shift_float,val;
-      int shift_bits = ((127+min_exp)<<23) | (target >> 31 <<31);
+      int64_t shift_bits = ((127+min_exp)<<23) | (target >> 31 <<31);
       BITS_TO_FLOAT(shift_bits, shift_float);
       val=a_array[i]+shift_float;
       FLOAT_TO_BITS(val, target);
@@ -299,24 +299,23 @@ Tensor float_quantize(Tensor a, int man_bits, int exp_bits, Mode rounding){
   return o;
 }
 
-Tensor float_quantize_stochastic(Tensor a, int man_bits, int exp_bits)
+Tensor float_quantize_stochastic(Tensor a, int64_t man_bits, int64_t exp_bits)
 {
   return float_quantize(a,man_bits, exp_bits, rStochastic);
 }
 
-Tensor float_quantize_nearest(Tensor a, int man_bits, int exp_bits)
+Tensor float_quantize_nearest(Tensor a, int64_t man_bits, int64_t exp_bits)
 {
   return float_quantize(a,man_bits, exp_bits, rNearest);
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
-{
-  m.def("fixed_point_quantize_stochastic_mask", &fixed_point_quantize_stochastic_mask, "Fixed Point Number Stochastic Quantization with Mask (CPU)");
-  m.def("fixed_point_quantize_stochastic", &fixed_point_quantize_stochastic, "Fixed Point Number Stochastic Quantization (CPU)");
-  m.def("block_quantize_stochastic", &block_quantize_stochastic, "Block Floating Point Number Stochastic Quantization (CPU)");
-  m.def("float_quantize_stochastic", &float_quantize_stochastic, "Low-Bitwidth Floating Point Number Stochastic Quantization (CUDA)");
-  m.def("fixed_point_quantize_nearest_mask", &fixed_point_quantize_nearest_mask, "Fixed Point Number Nearest Quantization with Mask (CPU)");
-  m.def("fixed_point_quantize_nearest", &fixed_point_quantize_nearest, "Fixed Point Number Nearest Neighbor Quantization (CPU)");
-  m.def("block_quantize_nearest", &block_quantize_nearest, "Block Floating Point Number Nearest Neighbor Quantization (CPU)");
-  m.def("float_quantize_nearest", &float_quantize_nearest, "Low-Bitwidth Floating Point Number Nearest Neighbor Quantization (CPU)");
+TORCH_LIBRARY(qtorch_ops, m) {
+  m.def("fixed_point_quantize_stochastic_mask", fixed_point_quantize_stochastic_mask);
+  m.def("fixed_point_quantize_stochastic", fixed_point_quantize_stochastic);
+  m.def("block_quantize_stochastic", block_quantize_stochastic);
+  m.def("float_quantize_stochastic", float_quantize_stochastic);
+  m.def("fixed_point_quantize_nearest_mask", fixed_point_quantize_nearest_mask);
+  m.def("fixed_point_quantize_nearest", fixed_point_quantize_nearest);
+  m.def("block_quantize_nearest", block_quantize_nearest);
+  m.def("float_quantize_nearest", float_quantize_nearest);
 }
