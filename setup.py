@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import re
 
 try:
     import torch
