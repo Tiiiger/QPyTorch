@@ -10,6 +10,7 @@ except ImportError:
 # Base equirements
 install_requires = [
     "torch>=1.5.0",
+    "Ninja",
 ]
 if has_dev_pytorch:  # Remove the PyTorch requirement
     install_requires = [
