@@ -20,7 +20,7 @@ class FixedPoint(Number):
     Numbers outside of the representable range can be clamped
     (if `clamp` is true).
     We can also give up the smallest representable number to make the range
-    symmetric, :math:`[-2^{wl-fl-1}^{-fl}, 2^{wl-fl-1}-2^{-fl}]`. (if `symmetric` is true).
+    symmetric, :math:`[-2^{wl-fl-1}+2^{-fl}, 2^{wl-fl-1}-2^{-fl}]`. (if `symmetric` is true).
 
     Define :math:`\lfloor x \rfloor` to be the largest representable number (multiples of :math:`2^{-fl}`) smaller than :math:`x`.
     For numbers within the representable range, fixed point quantizatio corresponds to
